@@ -1007,6 +1007,7 @@ function Index() {
               <table className="w-full min-w-max border-collapse whitespace-nowrap text-[12.5px]">
                 <thead>
                   <tr className="text-left text-ink-soft">
+                    <th className="border-b-2 border-line p-2">Ref.</th>
                     <th className="border-b-2 border-line p-2">Cliente</th>
                     <th className="border-b-2 border-line p-2">Origem</th>
                     <th className="border-b-2 border-line p-2">Destino</th>
@@ -1019,6 +1020,12 @@ function Index() {
                 <tbody>
                   {pendentes.map((s) => (
                     <tr key={s.id} className="hover:bg-secondary">
+                      <td
+                        className="border-b border-line p-2 font-mono text-[11px] text-ink-soft"
+                        title={s.ref_local ?? s.id}
+                      >
+                        {(s.ref_local ?? s.id).slice(-8)}
+                      </td>
                       <td className="border-b border-line p-2">{s.cliente || "—"}</td>
                       <td className="border-b border-line p-2">
                         {s.origem || "—"}
