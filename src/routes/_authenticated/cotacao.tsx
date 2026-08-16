@@ -195,17 +195,16 @@ function Index() {
     }
   };
 
-  const chaveSub = (cliente: string, origem: string, destino: string) =>
-    `${(cliente || "").trim().toLowerCase()}|${(origem || "").trim().toLowerCase()}|${(destino || "").trim().toLowerCase()}`;
-
-  // Baseado em statusGeral (visível a todos os usuários) para que a decisão do
-  // aprovador em uma cotação submetida por outra pessoa também apareça aqui.
+  // Cada cotação salva tem um id próprio (ref_local no banco). O status é
+  // rastreado por esse id — cotações com cliente/origem/destino iguais são
+  // tratadas como cotações distintas.
   // Uma decisão (aprovada/reprovada) sempre prevalece sobre linhas pendentes da
   // mesma cotação, e entre decisões vale a mais recente (decided_at).
   const statusPorCotacao = useMemo(() => {
     const map: Record<string, { status: string; decidedAt: number }> = {};
     for (const s of statusGeral) {
-      const chave = chaveSub(s.cliente, s.origem, s.destino);
+      const chave = s.ref_local;
+      if (!chave) continue;
       const decidida = s.status === "aprovada" || s.status === "reprovada";
       const decidedAt = s.decided_at ? new Date(s.decided_at).getTime() : 0;
       const atual = map[chave];
@@ -223,6 +222,7 @@ function Index() {
       Object.entries(map).map(([k, v]) => [k, v.status]),
     ) as Record<string, string>;
   }, [statusGeral]);
+
 
 
   // Decisões tomadas nesta sessão (para marca d'água nos botões clicados)
