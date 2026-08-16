@@ -635,20 +635,35 @@ function Index() {
               <ClipboardList className="mr-2 inline h-4 w-4 align-[-3px]" />Ver Cotações
             </button>
             {(() => {
-              const chave = `atual:${gerais.cliente}|${gerais.origem}|${gerais.destino}`;
-              const jaEnviada = !isApprover && submetidas[chave] === true;
-              const chaveA = chaveSub(gerais.cliente, gerais.origem, gerais.destino);
+              const idAtual = cotacaoAtualId;
+              const jaEnviada =
+                !isApprover && idAtual !== null && submetidas[idAtual] === true;
               const aprovada =
-                isApprover && (decisaoUI[chaveA] ?? statusPorCotacao[chaveA]) === "aprovada";
+                isApprover &&
+                idAtual !== null &&
+                (decisaoUI[idAtual] ?? statusPorCotacao[idAtual]) === "aprovada";
+              const acao = () => {
+                if (!gerais.cliente.trim()) {
+                  toast.warning("Informe o Nome do Cliente antes de continuar.");
+                  return;
+                }
+                // Cada cotação precisa de um id próprio: se ainda não foi salva,
+                // salva agora para gerar a referência.
+                const id = idAtual ?? salvarCotacao(gerais, cards);
+                if (!id) {
+                  toast.error("Não foi possível salvar a cotação (armazenamento indisponível).");
+                  return;
+                }
+                void (isApprover
+                  ? decidirLocal(gerais, cards, "aprovada", id)
+                  : submeter(gerais, cards, id));
+              };
               return (
                 <button
                   type="button"
                   disabled={enviando || jaEnviada}
-                  onClick={() =>
-                    isApprover
-                      ? decidirLocal(gerais, cards, "aprovada")
-                      : submeter(gerais, cards, chave)
-                  }
+                  onClick={acao}
+
                   className={`rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60 ${marcaDagua(aprovada)}`}
                 >
                   {isApprover ? (
