@@ -114,6 +114,8 @@ function Index() {
 
   const [cards, setCards] = useState<Record<number, DadosCard>>(cardsVazios);
   const [lista, setLista] = useState<Cotacao[]>([]);
+  // Id (referência única) da cotação atualmente aberta no painel principal
+  const [cotacaoAtualId, setCotacaoAtualId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirm, setConfirm] = useState<{
     msg: string;
