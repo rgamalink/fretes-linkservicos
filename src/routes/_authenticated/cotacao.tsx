@@ -236,8 +236,7 @@ function Index() {
   const submeter = async (
     g: DadosGerais,
     c: Record<number, DadosCard>,
-    chave: string,
-    cotacaoId?: string,
+    cotacaoId: string,
   ) => {
     if (!g.cliente.trim()) {
       toast.warning("Informe o Nome do Cliente antes de submeter à aprovação.");
@@ -245,9 +244,8 @@ function Index() {
     }
     setEnviando(true);
     try {
-      await submeterAprovacao(g, c, "pendente");
-      if (isApprover && !cotacaoId) salvarCotacao(g, c);
-      setSubmetidas((prev) => ({ ...prev, [chave]: true }));
+      await submeterAprovacao(g, c, "pendente", cotacaoId);
+      setSubmetidas((prev) => ({ ...prev, [cotacaoId]: true }));
       toast.success(
         isApprover
           ? "Cotação enviada para o fluxo de aprovação (pendente)."
@@ -260,6 +258,7 @@ function Index() {
       setEnviando(false);
     }
   };
+
 
   const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
 
