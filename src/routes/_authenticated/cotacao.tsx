@@ -114,6 +114,8 @@ function Index() {
 
   const [cards, setCards] = useState<Record<number, DadosCard>>(cardsVazios);
   const [lista, setLista] = useState<Cotacao[]>([]);
+  // Id (referência única) da cotação atualmente aberta no painel principal
+  const [cotacaoAtualId, setCotacaoAtualId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirm, setConfirm] = useState<{
     msg: string;
@@ -195,17 +197,16 @@ function Index() {
     }
   };
 
-  const chaveSub = (cliente: string, origem: string, destino: string) =>
-    `${(cliente || "").trim().toLowerCase()}|${(origem || "").trim().toLowerCase()}|${(destino || "").trim().toLowerCase()}`;
-
-  // Baseado em statusGeral (visível a todos os usuários) para que a decisão do
-  // aprovador em uma cotação submetida por outra pessoa também apareça aqui.
+  // Cada cotação salva tem um id próprio (ref_local no banco). O status é
+  // rastreado por esse id — cotações com cliente/origem/destino iguais são
+  // tratadas como cotações distintas.
   // Uma decisão (aprovada/reprovada) sempre prevalece sobre linhas pendentes da
   // mesma cotação, e entre decisões vale a mais recente (decided_at).
   const statusPorCotacao = useMemo(() => {
     const map: Record<string, { status: string; decidedAt: number }> = {};
     for (const s of statusGeral) {
-      const chave = chaveSub(s.cliente, s.origem, s.destino);
+      const chave = s.ref_local;
+      if (!chave) continue;
       const decidida = s.status === "aprovada" || s.status === "reprovada";
       const decidedAt = s.decided_at ? new Date(s.decided_at).getTime() : 0;
       const atual = map[chave];
@@ -225,6 +226,7 @@ function Index() {
   }, [statusGeral]);
 
 
+
   // Decisões tomadas nesta sessão (para marca d'água nos botões clicados)
   const [decisaoUI, setDecisaoUI] = useState<Record<string, "aprovada" | "reprovada">>({});
   const marcaDagua = (ativo: boolean) =>
@@ -236,8 +238,7 @@ function Index() {
   const submeter = async (
     g: DadosGerais,
     c: Record<number, DadosCard>,
-    chave: string,
-    cotacaoId?: string,
+    cotacaoId: string,
   ) => {
     if (!g.cliente.trim()) {
       toast.warning("Informe o Nome do Cliente antes de submeter à aprovação.");
@@ -245,9 +246,8 @@ function Index() {
     }
     setEnviando(true);
     try {
-      await submeterAprovacao(g, c, "pendente");
-      if (isApprover && !cotacaoId) salvarCotacao(g, c);
-      setSubmetidas((prev) => ({ ...prev, [chave]: true }));
+      await submeterAprovacao(g, c, "pendente", cotacaoId);
+      setSubmetidas((prev) => ({ ...prev, [cotacaoId]: true }));
       toast.success(
         isApprover
           ? "Cotação enviada para o fluxo de aprovação (pendente)."
@@ -260,6 +260,7 @@ function Index() {
       setEnviando(false);
     }
   };
+
 
   const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
 
@@ -276,7 +277,7 @@ function Index() {
       for (const item of itens) {
         if (!item.gerais.cliente.trim()) continue;
         try {
-          await submeterAprovacao(item.gerais, item.cards, "pendente");
+          await submeterAprovacao(item.gerais, item.cards, "pendente", item.id);
           setSubmetidas((prev) => ({ ...prev, [item.id]: true }));
           ok++;
         } catch {
@@ -307,7 +308,7 @@ function Index() {
       setDecisaoUI((prev) => ({
         ...prev,
         [s.id]: status,
-        [chaveSub(s.cliente, s.origem, s.destino)]: status,
+        ...(s.ref_local ? { [s.ref_local]: status } : {}),
       }));
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
@@ -316,11 +317,13 @@ function Index() {
     }
   };
 
-  // Aprovador decide direto na aba "Ver Cotações" ou no painel principal
+  // Aprovador decide direto na aba "Ver Cotações" ou no painel principal.
+  // A decisão é sempre amarrada ao id da cotação salva (cotacaoId).
   const decidirLocal = async (
     g: DadosGerais,
     c: Record<number, DadosCard>,
     status: "aprovada" | "reprovada",
+    cotacaoId: string,
   ) => {
     if (!g.cliente.trim()) {
       toast.warning("Informe o Nome do Cliente antes de decidir.");
@@ -328,16 +331,13 @@ function Index() {
     }
     setEnviando(true);
     try {
-      const chave = chaveSub(g.cliente, g.origem, g.destino);
-      const existente = submissoes.find(
-        (s) => chaveSub(s.cliente, s.origem, s.destino) === chave,
-      );
+      const existente = submissoes.find((s) => s.ref_local === cotacaoId);
       if (existente) {
         await decidirSubmissao(existente.id, status);
       } else {
-        await submeterAprovacao(g, c, status);
+        await submeterAprovacao(g, c, status, cotacaoId);
       }
-      setDecisaoUI((prev) => ({ ...prev, [chave]: status }));
+      setDecisaoUI((prev) => ({ ...prev, [cotacaoId]: status }));
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
     } catch {
@@ -350,10 +350,10 @@ function Index() {
 
 
 
-
   const setG = (patch: Partial<DadosGerais>) =>
     setGerais((prev) => ({ ...prev, ...patch }));
 
+  /** Salva a cotação e devolve o id gerado (referência única da cotação). */
   const salvarCotacao = (g: DadosGerais, c: Record<number, DadosCard>) => {
     const nova: Cotacao = {
       id: gerarId(),
@@ -364,10 +364,12 @@ function Index() {
     const atual = [nova, ...getCotacoes()];
     if (setCotacoes(atual)) {
       setLista(atual);
-      return true;
+      setCotacaoAtualId(nova.id);
+      return nova.id;
     }
-    return false;
+    return null;
   };
+
 
   const salvar = () => {
     if (!gerais.cliente.trim()) {
@@ -388,6 +390,7 @@ function Index() {
       action: () => {
         setGerais(geraisVazio());
         setCards(cardsVazios());
+        setCotacaoAtualId(null);
         toast.success("Nova cotação pronta para preenchimento.");
       },
     });
@@ -399,9 +402,11 @@ function Index() {
         EIXOS_LIST.map((e) => [e, { ...cardVazio(), ...(c.cards[e] ?? {}) }]),
       ),
     );
+    setCotacaoAtualId(c.id);
     setModalOpen(false);
     toast.success("Cotação carregada.");
   };
+
 
   const apagar = (c: Cotacao) =>
     setConfirm({
@@ -633,20 +638,35 @@ function Index() {
               <ClipboardList className="mr-2 inline h-4 w-4 align-[-3px]" />Ver Cotações
             </button>
             {(() => {
-              const chave = `atual:${gerais.cliente}|${gerais.origem}|${gerais.destino}`;
-              const jaEnviada = !isApprover && submetidas[chave] === true;
-              const chaveA = chaveSub(gerais.cliente, gerais.origem, gerais.destino);
+              const idAtual = cotacaoAtualId;
+              const jaEnviada =
+                !isApprover && idAtual !== null && submetidas[idAtual] === true;
               const aprovada =
-                isApprover && (decisaoUI[chaveA] ?? statusPorCotacao[chaveA]) === "aprovada";
+                isApprover &&
+                idAtual !== null &&
+                (decisaoUI[idAtual] ?? statusPorCotacao[idAtual]) === "aprovada";
+              const acao = () => {
+                if (!gerais.cliente.trim()) {
+                  toast.warning("Informe o Nome do Cliente antes de continuar.");
+                  return;
+                }
+                // Cada cotação precisa de um id próprio: se ainda não foi salva,
+                // salva agora para gerar a referência.
+                const id = idAtual ?? salvarCotacao(gerais, cards);
+                if (!id) {
+                  toast.error("Não foi possível salvar a cotação (armazenamento indisponível).");
+                  return;
+                }
+                void (isApprover
+                  ? decidirLocal(gerais, cards, "aprovada", id)
+                  : submeter(gerais, cards, id));
+              };
               return (
                 <button
                   type="button"
                   disabled={enviando || jaEnviada}
-                  onClick={() =>
-                    isApprover
-                      ? decidirLocal(gerais, cards, "aprovada")
-                      : submeter(gerais, cards, chave)
-                  }
+                  onClick={acao}
+
                   className={`rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60 ${marcaDagua(aprovada)}`}
                 >
                   {isApprover ? (
@@ -874,6 +894,7 @@ function Index() {
                 <thead>
                   <tr className="text-left text-ink-soft">
                     {!isApprover && <th className="border-b-2 border-line p-2" />}
+                    <th className="border-b-2 border-line p-2">Ref.</th>
                     <th className="border-b-2 border-line p-2">Cliente</th>
                     <th className="border-b-2 border-line p-2">Origem</th>
                     <th className="border-b-2 border-line p-2">Destino</th>
@@ -885,11 +906,7 @@ function Index() {
 
                 <tbody>
                   {filtrada.map((item) => {
-                    const chaveItem = chaveSub(
-                      item.gerais.cliente,
-                      item.gerais.origem,
-                      item.gerais.destino,
-                    );
+                    const chaveItem = item.id;
                     const statusCotacao =
                       decisaoUI[chaveItem] ?? statusPorCotacao[chaveItem] ?? "pendente";
 
@@ -913,6 +930,9 @@ function Index() {
                             />
                           </td>
                         )}
+                        <td className="border-b border-line p-2 font-mono text-[11px] text-ink-soft" title={item.id}>
+                          {item.id.slice(-8)}
+                        </td>
                         <td className="border-b border-line p-2">
                           {item.gerais.cliente || "—"}
                         </td>
@@ -944,7 +964,7 @@ function Index() {
                             <button
                               type="button"
                               disabled={enviando || submetidas[item.id] === true}
-                              onClick={() => submeter(item.gerais, item.cards, item.id, item.id)}
+                              onClick={() => submeter(item.gerais, item.cards, item.id)}
                               className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <Send className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
@@ -987,6 +1007,7 @@ function Index() {
               <table className="w-full min-w-max border-collapse whitespace-nowrap text-[12.5px]">
                 <thead>
                   <tr className="text-left text-ink-soft">
+                    <th className="border-b-2 border-line p-2">Ref.</th>
                     <th className="border-b-2 border-line p-2">Cliente</th>
                     <th className="border-b-2 border-line p-2">Origem</th>
                     <th className="border-b-2 border-line p-2">Destino</th>
@@ -999,6 +1020,12 @@ function Index() {
                 <tbody>
                   {pendentes.map((s) => (
                     <tr key={s.id} className="hover:bg-secondary">
+                      <td
+                        className="border-b border-line p-2 font-mono text-[11px] text-ink-soft"
+                        title={s.ref_local ?? s.id}
+                      >
+                        {(s.ref_local ?? s.id).slice(-8)}
+                      </td>
                       <td className="border-b border-line p-2">{s.cliente || "—"}</td>
                       <td className="border-b border-line p-2">
                         {s.origem || "—"}
