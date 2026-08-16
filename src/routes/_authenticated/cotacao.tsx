@@ -275,7 +275,7 @@ function Index() {
       for (const item of itens) {
         if (!item.gerais.cliente.trim()) continue;
         try {
-          await submeterAprovacao(item.gerais, item.cards, "pendente");
+          await submeterAprovacao(item.gerais, item.cards, "pendente", item.id);
           setSubmetidas((prev) => ({ ...prev, [item.id]: true }));
           ok++;
         } catch {
@@ -306,7 +306,7 @@ function Index() {
       setDecisaoUI((prev) => ({
         ...prev,
         [s.id]: status,
-        [chaveSub(s.cliente, s.origem, s.destino)]: status,
+        ...(s.ref_local ? { [s.ref_local]: status } : {}),
       }));
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
@@ -315,11 +315,13 @@ function Index() {
     }
   };
 
-  // Aprovador decide direto na aba "Ver Cotações" ou no painel principal
+  // Aprovador decide direto na aba "Ver Cotações" ou no painel principal.
+  // A decisão é sempre amarrada ao id da cotação salva (cotacaoId).
   const decidirLocal = async (
     g: DadosGerais,
     c: Record<number, DadosCard>,
     status: "aprovada" | "reprovada",
+    cotacaoId: string,
   ) => {
     if (!g.cliente.trim()) {
       toast.warning("Informe o Nome do Cliente antes de decidir.");
@@ -327,16 +329,13 @@ function Index() {
     }
     setEnviando(true);
     try {
-      const chave = chaveSub(g.cliente, g.origem, g.destino);
-      const existente = submissoes.find(
-        (s) => chaveSub(s.cliente, s.origem, s.destino) === chave,
-      );
+      const existente = submissoes.find((s) => s.ref_local === cotacaoId);
       if (existente) {
         await decidirSubmissao(existente.id, status);
       } else {
-        await submeterAprovacao(g, c, status);
+        await submeterAprovacao(g, c, status, cotacaoId);
       }
-      setDecisaoUI((prev) => ({ ...prev, [chave]: status }));
+      setDecisaoUI((prev) => ({ ...prev, [cotacaoId]: status }));
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
     } catch {
@@ -349,10 +348,10 @@ function Index() {
 
 
 
-
   const setG = (patch: Partial<DadosGerais>) =>
     setGerais((prev) => ({ ...prev, ...patch }));
 
+  /** Salva a cotação e devolve o id gerado (referência única da cotação). */
   const salvarCotacao = (g: DadosGerais, c: Record<number, DadosCard>) => {
     const nova: Cotacao = {
       id: gerarId(),
@@ -363,10 +362,12 @@ function Index() {
     const atual = [nova, ...getCotacoes()];
     if (setCotacoes(atual)) {
       setLista(atual);
-      return true;
+      setCotacaoAtualId(nova.id);
+      return nova.id;
     }
-    return false;
+    return null;
   };
+
 
   const salvar = () => {
     if (!gerais.cliente.trim()) {
