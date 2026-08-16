@@ -390,6 +390,7 @@ function Index() {
       action: () => {
         setGerais(geraisVazio());
         setCards(cardsVazios());
+        setCotacaoAtualId(null);
         toast.success("Nova cotação pronta para preenchimento.");
       },
     });
@@ -401,9 +402,11 @@ function Index() {
         EIXOS_LIST.map((e) => [e, { ...cardVazio(), ...(c.cards[e] ?? {}) }]),
       ),
     );
+    setCotacaoAtualId(c.id);
     setModalOpen(false);
     toast.success("Cotação carregada.");
   };
+
 
   const apagar = (c: Cotacao) =>
     setConfirm({
@@ -902,11 +905,7 @@ function Index() {
 
                 <tbody>
                   {filtrada.map((item) => {
-                    const chaveItem = chaveSub(
-                      item.gerais.cliente,
-                      item.gerais.origem,
-                      item.gerais.destino,
-                    );
+                    const chaveItem = item.id;
                     const statusCotacao =
                       decisaoUI[chaveItem] ?? statusPorCotacao[chaveItem] ?? "pendente";
 
@@ -961,7 +960,7 @@ function Index() {
                             <button
                               type="button"
                               disabled={enviando || submetidas[item.id] === true}
-                              onClick={() => submeter(item.gerais, item.cards, item.id, item.id)}
+                              onClick={() => submeter(item.gerais, item.cards, item.id)}
                               className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <Send className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
