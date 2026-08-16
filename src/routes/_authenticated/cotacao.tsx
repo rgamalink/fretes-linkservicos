@@ -894,6 +894,7 @@ function Index() {
                 <thead>
                   <tr className="text-left text-ink-soft">
                     {!isApprover && <th className="border-b-2 border-line p-2" />}
+                    <th className="border-b-2 border-line p-2">Ref.</th>
                     <th className="border-b-2 border-line p-2">Cliente</th>
                     <th className="border-b-2 border-line p-2">Origem</th>
                     <th className="border-b-2 border-line p-2">Destino</th>
@@ -929,6 +930,9 @@ function Index() {
                             />
                           </td>
                         )}
+                        <td className="border-b border-line p-2 font-mono text-[11px] text-ink-soft" title={item.id}>
+                          {item.id.slice(-8)}
+                        </td>
                         <td className="border-b border-line p-2">
                           {item.gerais.cliente || "—"}
                         </td>
