@@ -5,6 +5,7 @@ import { Loader2, LockKeyhole } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { notificarNovoCadastro } from "@/lib/notificacoes.functions";
 import logoAsset from "@/assets/logo-link.png.asset.json";
 
 function destinoSeguro(next: unknown): string | null {
