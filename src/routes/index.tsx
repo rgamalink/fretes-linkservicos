@@ -5,6 +5,7 @@ import { Loader2, LockKeyhole } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { notificarNovoCadastro } from "@/lib/notificacoes.functions";
 import logoAsset from "@/assets/logo-link.png.asset.json";
 
 function destinoSeguro(next: unknown): string | null {
@@ -153,6 +154,15 @@ function LoginPage() {
       );
       return;
     }
+    // Avisa o aprovador por e-mail (não bloqueia o cadastro se falhar)
+    void notificarNovoCadastro({
+      data: {
+        email: parsed.data.email,
+        nome: parsed.data.nome,
+        empresa: parsed.data.empresa,
+      },
+    }).catch(() => undefined);
+
     if (!data.session) {
       toast.success("Conta criada! O acesso será liberado após aprovação do administrador.");
       setModo("login");
