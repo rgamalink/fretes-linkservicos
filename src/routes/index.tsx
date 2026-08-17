@@ -153,6 +153,15 @@ function LoginPage() {
       );
       return;
     }
+    // Avisa o aprovador por e-mail (não bloqueia o cadastro se falhar)
+    void notificarNovoCadastro({
+      data: {
+        email: parsed.data.email,
+        nome: parsed.data.nome,
+        empresa: parsed.data.empresa,
+      },
+    }).catch(() => undefined);
+
     if (!data.session) {
       toast.success("Conta criada! O acesso será liberado após aprovação do administrador.");
       setModo("login");
