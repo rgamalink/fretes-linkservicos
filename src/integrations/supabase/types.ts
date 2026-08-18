@@ -177,6 +177,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decidir_acesso: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

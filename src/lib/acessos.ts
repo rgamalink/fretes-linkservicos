@@ -33,16 +33,11 @@ export async function listarUsuarios(): Promise<UsuarioAcesso[]> {
   return (data ?? []) as UsuarioAcesso[];
 }
 
-/** Aprova ou reprova o acesso de um cadastro. */
+/** Aprova ou reprova o acesso de um cadastro (apenas aprovador via RPC segura). */
 export async function decidirAcesso(id: string, status: AcessoStatus) {
-  const { data: userData } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      access_status: status,
-      access_decided_at: new Date().toISOString(),
-      access_decided_by: userData.user?.id ?? null,
-    })
-    .eq("id", id);
+  const { error } = await supabase.rpc("decidir_acesso", {
+    p_id: id,
+    p_status: status,
+  });
   if (error) throw error;
 }
