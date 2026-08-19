@@ -594,7 +594,7 @@ function Index() {
               </select>
             </div>
             <div>
-              <label className={labelCls}>Valor da Carga (R$)</label>
+              <label className={labelCls}>Valor da Carga (R$/ton)</label>
               <input
                 inputMode="decimal"
                 placeholder="0,00"
