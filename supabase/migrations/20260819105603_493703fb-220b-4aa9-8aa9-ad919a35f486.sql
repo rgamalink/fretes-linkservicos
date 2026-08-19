@@ -21,4 +21,4 @@ DROP POLICY IF EXISTS "Approver can view all submissions" ON public.cotacoes_apr
 CREATE POLICY "Approver can view all submissions" ON public.cotacoes_aprovacao FOR SELECT TO authenticated
 USING (EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'approver'::public.app_role));
 
-DROP FUNCTION IF EXISTS private.has_role(uuid, public.app_role);
+DROP FUNCTION IF EXISTS private.has_role(uuid, public.app_role) CASCADE;
