@@ -911,6 +911,8 @@ function Index() {
                     <th className="border-b-2 border-line p-2">Destino</th>
                     <th className="border-b-2 border-line p-2">Salvo em</th>
                     <th className="border-b-2 border-line p-2">Status</th>
+                    <th className="border-b-2 border-line p-2">Eixos Aprovados</th>
+                    <th className="border-b-2 border-line p-2">PF/PJ</th>
                     <th className="border-b-2 border-line p-2" colSpan={2}>Ações</th>
                   </tr>
                 </thead>
@@ -927,6 +929,10 @@ function Index() {
                         : statusCotacao === "reprovada"
                           ? "text-danger"
                           : "text-ink-soft";
+
+                    const eixosAprovados = EIXOS_LIST.filter((eixos) =>
+                      item.cards[eixos]?.status.startsWith("Aprovado"),
+                    );
                     return (
                       <tr key={item.id} className="hover:bg-secondary">
                         {!isApprover && (
@@ -960,6 +966,14 @@ function Index() {
                         </td>
                         <td className={`border-b border-line p-2 font-semibold capitalize ${statusColorClass}`}>
                           {statusCotacao}
+                        </td>
+                        <td className="border-b border-line p-2">
+                          {eixosAprovados.length > 0
+                            ? eixosAprovados.map((e) => `${e} eixos`).join(", ")
+                            : "—"}
+                        </td>
+                        <td className="border-b border-line p-2">
+                          {item.gerais.pfpj}
                         </td>
                         <td className="border-b border-line p-2">
                           <button
