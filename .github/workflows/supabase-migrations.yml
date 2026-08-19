@@ -13,26 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Link Supabase project
-        run: supabase link --project-ref jamjnxmsaeqtwkkokrms
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Debug DB URL shape (no secrets leaked)
+      - name: Apply pending migrations via psql
         run: |
-          echo "Length: ${#SUPABASE_DB_URL}"
-          echo "Prefix (first 14 chars): ${SUPABASE_DB_URL:0:14}"
-          echo "Contains '@': $(echo "$SUPABASE_DB_URL" | grep -c '@' || true)"
-          echo "Host part after last @: $(echo "$SUPABASE_DB_URL" | sed -E 's/.*@//; s#/.*##')"
+          set -e
+          applied="$(psql "$SUPABASE_DB_URL" -Atqc "SELECT version FROM supabase_migrations.schema_migrations;")"
+          for f in supabase/migrations/*.sql; do
+            base="$(basename "$f")"
+            version="${base%%_*}"
+            if echo "$applied" | grep -qx "$version"; then
+              echo "Skipping already-applied $base"
+              continue
+            fi
+            echo "Applying $base"
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c \
+              "INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ('${version}', '${base}') ON CONFLICT DO NOTHING;"
+          done
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
-      - name: Push pending migrations
-        run: supabase db push --db-url "$SUPABASE_DB_URL"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
