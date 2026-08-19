@@ -25,6 +25,7 @@ import {
   cardVazio,
 
   cardsVazios,
+  formatMoneyValue,
   gerarId,
   geraisVazio,
   getCotacoes,
@@ -35,6 +36,7 @@ import {
   type DadosGerais,
   type TipoCarga,
 } from "@/lib/pricing";
+import { buscarValorMedioProduto } from "@/lib/valorMercadoria";
 import {
   Dialog,
   DialogContent,
@@ -565,9 +567,18 @@ function Index() {
               <label className={labelCls}>Produto</label>
               <input
                 className={fieldCls}
-                placeholder="Ex.: Soja em grãos"
+                placeholder="Ex.: Minério"
                 value={gerais.produto}
-                onChange={(e) => setG({ produto: e.target.value })}
+                onChange={(e) => {
+                  const produto = e.target.value;
+                  const valorMedio = buscarValorMedioProduto(produto);
+                  setG({
+                    produto,
+                    ...(valorMedio !== null
+                      ? { valorCarga: formatMoneyValue(valorMedio) }
+                      : {}),
+                  });
+                }}
               />
             </div>
             <div>
