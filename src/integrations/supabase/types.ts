@@ -114,9 +114,6 @@ export type Database = {
       }
       profiles: {
         Row: {
-          access_decided_at: string | null
-          access_decided_by: string | null
-          access_status: string
           company: string | null
           created_at: string
           email: string | null
@@ -126,9 +123,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_decided_at?: string | null
-          access_decided_by?: string | null
-          access_status?: string
           company?: string | null
           created_at?: string
           email?: string | null
@@ -138,9 +132,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          access_decided_at?: string | null
-          access_decided_by?: string | null
-          access_status?: string
           company?: string | null
           created_at?: string
           email?: string | null
@@ -148,6 +139,27 @@ export type Database = {
           id?: string
           job_title?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_access: {
+        Row: {
+          access_decided_at: string | null
+          access_decided_by: string | null
+          access_status: string
+          user_id: string
+        }
+        Insert: {
+          access_decided_at?: string | null
+          access_decided_by?: string | null
+          access_status?: string
+          user_id: string
+        }
+        Update: {
+          access_decided_at?: string | null
+          access_decided_by?: string | null
+          access_status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -177,10 +189,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      decidir_acesso: {
-        Args: { p_id: string; p_status: string }
-        Returns: undefined
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
