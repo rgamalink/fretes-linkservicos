@@ -181,11 +181,27 @@ export function FreightCard({
 
         <SectionTitle>Frete Motorista</SectionTitle>
         <InputRow
+          label="Frete Motorista (R$)"
+          value={card.freteMotoristaR}
+          onChange={(v) => {
+            const masked = maskMoney(v);
+            onChange({
+              freteMotoristaR: masked,
+              freteMotoristaTon: masked ? formatMoneyValue(parseMoney(masked) / peso) : "",
+            });
+          }}
+        />
+        <InputRow
           label="Frete Motorista (R$/ton)"
           value={card.freteMotoristaTon}
-          onChange={(v) => onChange({ freteMotoristaTon: maskMoney(v) })}
+          onChange={(v) => {
+            const masked = maskMoney(v);
+            onChange({
+              freteMotoristaTon: masked,
+              freteMotoristaR: masked ? formatMoneyValue(parseMoney(masked) * peso) : "",
+            });
+          }}
         />
-        <Row label="Frete Motorista (R$)" value={brl(c.fmR)} />
         <Row
           label="Frete Motorista c/ Pedágio"
           value={brl(c.fmpR)}

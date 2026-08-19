@@ -93,6 +93,7 @@ export type DadosCard = {
   freteEmpresaR: string;
   freteEmpresaTon: string;
   pedagio: string;
+  freteMotoristaR: string;
   freteMotoristaTon: string;
   data: string;
   status: string;
@@ -123,6 +124,7 @@ export const cardVazio = (): DadosCard => ({
   freteEmpresaR: "",
   freteEmpresaTon: "",
   pedagio: "",
+  freteMotoristaR: "",
   freteMotoristaTon: "",
   data: hojeISO(),
   status: "Aguardando decisão",
