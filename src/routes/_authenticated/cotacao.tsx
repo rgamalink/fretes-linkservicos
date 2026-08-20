@@ -694,6 +694,29 @@ function Index() {
               );
             })()}
 
+            {isApprover && (() => {
+              const idAtual = cotacaoAtualId;
+              const reprovada =
+                idAtual !== null &&
+                (decisaoUI[idAtual] ?? statusPorCotacao[idAtual]) === "reprovada";
+              return (
+                <button
+                  type="button"
+                  disabled={enviando}
+                  onClick={() => {
+                    const id = idAtual ?? salvarCotacao(gerais, cards);
+                    if (!id) {
+                      toast.error("Não foi possível salvar a cotação (armazenamento indisponível).");
+                      return;
+                    }
+                    void decidirLocal(gerais, cards, "reprovada", id);
+                  }}
+                  className={`rounded-[7px] border border-danger bg-panel px-4 py-2.5 text-[13px] font-bold text-danger transition-colors hover:bg-danger hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60 ${marcaDagua(reprovada)}`}
+                >
+                  <X className="mr-2 inline h-4 w-4 align-[-3px]" />Reprovar
+                </button>
+              );
+            })()}
 
             {isApprover && (
               <>
