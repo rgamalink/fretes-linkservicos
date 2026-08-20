@@ -493,7 +493,7 @@ function Index() {
 
       <div className="mx-auto max-w-[1440px] px-6 pb-15">
         <Panel title="Dados da Cotação (aplicam-se aos 4 cards)">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3.5">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-2.5">
             <div>
               <label className={labelCls}>Nome do Cliente</label>
               <input
