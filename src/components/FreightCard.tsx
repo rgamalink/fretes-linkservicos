@@ -14,7 +14,7 @@ import {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3.5 mb-1.5 border-b border-line pb-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-accent-dark first:mt-0">
+    <div className="mt-2.5 mb-1 border-b border-line pb-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-accent-dark first:mt-0">
       {children}
     </div>
   );
@@ -32,7 +32,7 @@ function Row({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2.5 py-1 text-[13px]">
+    <div className="flex items-center justify-between gap-2.5 py-0.5 text-[13px]">
       <div className={strong ? "font-bold text-ink" : "text-ink-soft"}>{label}</div>
       <div className="flex items-baseline gap-2">
         <div className="font-bold tabular-nums">{value}</div>
@@ -57,7 +57,7 @@ function InputRow({
 }) {
   const inputId = useId();
   return (
-    <div className="my-1 flex items-center justify-between gap-2.5 rounded-[7px] border border-warn-line bg-warn-field px-2.5 py-1.5">
+    <div className="my-0.5 flex items-center justify-between gap-2.5 rounded-[7px] border border-warn-line bg-warn-field px-2.5 py-1">
       <label
         htmlFor={inputId}
         className="text-[12.5px] font-semibold text-warn-ink"
@@ -97,6 +97,7 @@ export function FreightCard({
 
   const aprovado = card.status.startsWith("Aprovado");
   const reprovado = card.status.startsWith("Reprovado");
+  const viavelFinanceiro = c.moR > 0 && c.moTon > 0 && c.moPct > 0;
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-panel">
@@ -209,17 +210,17 @@ export function FreightCard({
         />
 
         <div
-          className={`mt-3 rounded-lg p-2.5 text-center text-sm font-extrabold tracking-[0.03em] ${
+          className={`mt-2.5 rounded-lg p-2.5 text-center text-sm font-extrabold tracking-[0.03em] ${
             c.viavel
               ? "bg-success-bg text-success"
               : "bg-danger-bg text-danger"
           }`}
         >
-          VIABILIDADE: {c.viavel ? "SIM" : "NÃO"}
+          VIABILIDADE ANTT: {c.viavel ? "SIM" : "NÃO"}
         </div>
 
         <SectionTitle>Margem Operacional</SectionTitle>
-        <div className="mt-1.5 flex flex-col gap-1.5 rounded-lg bg-secondary px-3 py-2.5">
+        <div className="mt-1 flex flex-col gap-1 rounded-lg bg-secondary px-3 py-2">
           <div className="border-b border-dashed border-line">
             <Row label="Valor (R$)" value={brl(c.moR)} />
           </div>
@@ -227,6 +228,16 @@ export function FreightCard({
             <Row label="Valor (R$/ton)" value={brl(c.moTon)} />
           </div>
           <Row label="Margem (%)" value={pct(c.moPct)} />
+        </div>
+
+        <div
+          className={`mt-2.5 rounded-lg p-2.5 text-center text-sm font-extrabold tracking-[0.03em] ${
+            viavelFinanceiro
+              ? "bg-success-bg text-success"
+              : "bg-danger-bg text-danger"
+          }`}
+        >
+          VIABILIDADE FINANCEIRA: {viavelFinanceiro ? "SIM" : "NÃO"}
         </div>
 
         <SectionTitle>Data da Cotação</SectionTitle>
