@@ -170,11 +170,11 @@ function LoginPage() {
       .catch((e) => console.error("[notificarNovoCadastro] erro ao chamar:", e));
 
     if (!data.session) {
-      toast.success("Conta criada! O acesso será liberado após aprovação do administrador.");
+      toast.success("Conta criada! Faça login para acessar o sistema.");
       setModo("login");
       return;
     }
-    toast.success("Conta criada! Aguarde a aprovação do administrador.");
+    toast.success("Conta criada!");
     irParaDestino();
   }
 
