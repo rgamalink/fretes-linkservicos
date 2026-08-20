@@ -30,13 +30,18 @@ export const Route = createFileRoute("/aguardando-aprovacao")({
 
 function AguardandoPage() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<AcessoStatus | null>(null);
+  const [status, setStatus] = useState<AcessoStatus | "nao_cadastrado" | null>(null);
 
   useEffect(() => {
     let ativo = true;
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         navigate({ to: "/", replace: true });
+        return;
+      }
+      if (!(data.user.email ?? "").toLowerCase().endsWith("@linkbr.com")) {
+        await supabase.auth.signOut();
+        if (ativo) setStatus("nao_cadastrado");
         return;
       }
       const s = await meuAcesso(data.user.id);
@@ -55,6 +60,7 @@ function AguardandoPage() {
     navigate({ to: "/", replace: true });
   }
 
+  const naoCadastrado = status === "nao_cadastrado";
   const reprovado = status === "reprovado";
 
   return (
@@ -82,18 +88,24 @@ function AguardandoPage() {
         </div>
 
         <section className="mt-4 rounded-[10px] border border-line bg-panel p-6 text-center">
-          {reprovado ? (
+          {reprovado || naoCadastrado ? (
             <ShieldX className="mx-auto size-7 text-danger" />
           ) : (
             <Clock className="mx-auto size-7 text-accent" />
           )}
           <h2 className="mt-3 text-sm font-bold text-ink">
-            {reprovado ? "Acesso não autorizado" : "Cadastro aguardando aprovação"}
+            {naoCadastrado
+              ? "Usuário não cadastrado"
+              : reprovado
+                ? "Acesso não autorizado"
+                : "Cadastro aguardando aprovação"}
           </h2>
           <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-            {reprovado
-              ? `Seu acesso foi reprovado. Entre em contato com ${APPROVER_EMAIL} para mais informações.`
-              : `Seu cadastro foi criado e precisa ser aprovado por ${APPROVER_EMAIL}. Você receberá o acesso assim que a aprovação for registrada.`}
+            {naoCadastrado
+              ? "Apenas e-mails @linkbr.com têm acesso a este sistema."
+              : reprovado
+                ? `Seu acesso foi reprovado. Entre em contato com ${APPROVER_EMAIL} para mais informações.`
+                : `Seu cadastro foi criado e precisa ser aprovado por ${APPROVER_EMAIL}. Você receberá o acesso assim que a aprovação for registrada.`}
           </p>
           <button
             type="button"

@@ -49,7 +49,10 @@ const credenciaisSchema = z.object({
     .string()
     .trim()
     .email({ message: "Informe um e-mail válido" })
-    .max(255, { message: "E-mail muito longo" }),
+    .max(255, { message: "E-mail muito longo" })
+    .refine((email) => email.toLowerCase().endsWith("@linkbr.com"), {
+      message: "Usuário não cadastrado.",
+    }),
   senha: z
     .string()
     .min(6, { message: "A senha deve ter ao menos 6 caracteres" })
@@ -57,10 +60,6 @@ const credenciaisSchema = z.object({
 });
 
 const cadastroSchema = credenciaisSchema.extend({
-  email: credenciaisSchema.shape.email.refine(
-    (email) => email.toLowerCase().endsWith("@linkbr.com"),
-    { message: "Apenas e-mails @linkbr.com podem se cadastrar" },
-  ),
   nome: z
     .string()
     .trim()
