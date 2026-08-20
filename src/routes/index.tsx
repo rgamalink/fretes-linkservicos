@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Loader2, LockKeyhole } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { notificarNovoCadastro } from "@/lib/notificacoes.functions";
 import logoAsset from "@/assets/logo-link.png.asset.json";
 
@@ -58,6 +57,10 @@ const credenciaisSchema = z.object({
 });
 
 const cadastroSchema = credenciaisSchema.extend({
+  email: credenciaisSchema.shape.email.refine(
+    (email) => email.toLowerCase().endsWith("@linkbr.com"),
+    { message: "Apenas e-mails @linkbr.com podem se cadastrar" },
+  ),
   nome: z
     .string()
     .trim()
@@ -169,20 +172,6 @@ function LoginPage() {
       return;
     }
     toast.success("Conta criada! Aguarde a aprovação do administrador.");
-    irParaDestino();
-  }
-
-  async function entrarComGoogle() {
-    setCarregando(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + (next ?? ""),
-    });
-    if (result.error) {
-      setCarregando(false);
-      toast.error("Não foi possível entrar com o Google.");
-      return;
-    }
-    if (result.redirected) return;
     irParaDestino();
   }
 
@@ -305,39 +294,6 @@ function LoginPage() {
               {modo === "login" ? "Entrar" : "Criar conta"}
             </button>
           </form>
-
-          <div className="my-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-line" />
-            <span className="text-[11px] font-semibold text-ink-soft uppercase">ou</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
-
-          <button
-            type="button"
-            onClick={entrarComGoogle}
-            disabled={carregando}
-            className="flex w-full items-center justify-center gap-2 rounded-[7px] border border-line bg-background px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-accent disabled:opacity-60"
-          >
-            <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-              <path
-                fill="#4285F4"
-                d="M23.5 12.3c0-.9-.1-1.6-.2-2.3H12v4.3h6.5c-.1 1-.8 2.6-2.3 3.7l-.1.1 3.4 2.6.2.1c2.1-2 3.3-4.9 3.3-8.5z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.6-2.8c-1 .7-2.3 1.2-4 1.2-3 0-5.6-2-6.5-4.8l-.1.1-3.5 2.7v.1C3.8 21.3 7.6 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.5 14.8c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3v-.1L1.9 7.3l-.1.1C1 9 .6 10.5.6 12.5s.4 3.5 1.2 5.1l3.7-2.8z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.7c2.1 0 3.6.9 4.4 1.7l3.2-3.1C17.7 1.4 15.1.3 12 .3 7.6.3 3.8 3 1.9 7.3l3.6 2.8C6.4 7.3 9 4.7 12 4.7z"
-              />
-            </svg>
-            Continuar com Google
-          </button>
 
           <p className="mt-5 text-center text-xs text-ink-soft">
             {modo === "login" ? "Não tem conta?" : "Já possui conta?"}{" "}
