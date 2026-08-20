@@ -25,19 +25,31 @@ function Row({
   value,
   sub,
   strong,
+  negative,
 }: {
   label: React.ReactNode;
   value: string;
   sub?: string;
   strong?: boolean;
+  negative?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2.5 py-0.5 text-[13px]">
-      <div className={strong ? "font-bold text-ink" : "text-ink-soft"}>{label}</div>
-      <div className="flex items-baseline gap-2">
-        <div className="font-bold tabular-nums">{value}</div>
+    <div className="flex items-center justify-between gap-2 py-0.5 text-[12px]">
+      <div
+        className={`whitespace-nowrap ${strong ? "font-bold text-ink" : "text-ink-soft"}`}
+      >
+        {label}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <div className={`font-bold tabular-nums ${negative ? "text-danger" : ""}`}>
+          {value}
+        </div>
         {sub !== undefined && (
-          <div className="text-[11.5px] tabular-nums text-ink-soft">{sub}</div>
+          <div
+            className={`text-[10.5px] tabular-nums ${negative ? "text-danger" : "text-ink-soft"}`}
+          >
+            {sub}
+          </div>
         )}
       </div>
     </div>
@@ -222,12 +234,12 @@ export function FreightCard({
         <SectionTitle>Margem Operacional</SectionTitle>
         <div className="mt-1 flex flex-col gap-1 rounded-lg bg-secondary px-3 py-2">
           <div className="border-b border-dashed border-line">
-            <Row label="Valor (R$)" value={brl(c.moR)} />
+            <Row label="Valor (R$)" value={brl(c.moR)} negative={c.moR < 0} />
           </div>
           <div className="border-b border-dashed border-line">
-            <Row label="Valor (R$/ton)" value={brl(c.moTon)} />
+            <Row label="Valor (R$/ton)" value={brl(c.moTon)} negative={c.moTon < 0} />
           </div>
-          <Row label="Margem (%)" value={pct(c.moPct)} />
+          <Row label="Margem (%)" value={pct(c.moPct)} negative={c.moPct < 0} />
         </div>
 
         <div
