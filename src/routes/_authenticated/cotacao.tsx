@@ -16,6 +16,7 @@ import {
   type Submissao,
 } from "@/lib/aprovacoes";
 
+import logoAsset from "@/assets/logo-link.png.asset.json";
 import { FreightCard } from "@/components/FreightCard";
 import {
   ANTT_COEF,
@@ -479,14 +480,21 @@ function Index() {
                 impostos · viabilidade · margem operacional
               </p>
             </div>
-            <button
-              type="button"
-              onClick={sair}
-              className="flex items-center gap-1.5 rounded-[7px] border border-primary-foreground/25 px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
-            >
-              <LogOut className="size-3.5" />
-              Sair
-            </button>
+            <div className="flex items-center gap-3">
+              <img
+                src={logoAsset.url}
+                alt="Link Group"
+                className="h-7 w-auto rounded-[4px] bg-white px-1.5 py-1 object-contain"
+              />
+              <button
+                type="button"
+                onClick={sair}
+                className="flex items-center gap-1.5 rounded-[7px] border border-primary-foreground/25 px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+              >
+                <LogOut className="size-3.5" />
+                Sair
+              </button>
+            </div>
           </header>
         </div>
       </div>
