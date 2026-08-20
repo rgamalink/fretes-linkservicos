@@ -184,13 +184,6 @@ function Index() {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
     void carregarSubmissoes();
     void carregarUsuarios();
-
-    // DIAGNÓSTICO TEMPORÁRIO — remover depois de confirmar o projeto Supabase em uso.
-    const url = (import.meta as unknown as { env: Record<string, string> }).env[
-      "VITE_SUPABASE_URL"
-    ];
-    console.warn("[DIAGNÓSTICO] SUPABASE_URL em uso pelo app:", url);
-    toast.info(`Supabase em uso: ${url}`, { duration: 15000 });
   }, []);
 
   const carregarSubmissoes = async () => {
