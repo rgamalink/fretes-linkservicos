@@ -163,7 +163,11 @@ function LoginPage() {
         nome: parsed.data.nome,
         empresa: parsed.data.empresa,
       },
-    }).catch(() => undefined);
+    })
+      .then((r) => {
+        if (!r.ok) console.error("[notificarNovoCadastro] falhou:", r.reason);
+      })
+      .catch((e) => console.error("[notificarNovoCadastro] erro ao chamar:", e));
 
     if (!data.session) {
       toast.success("Conta criada! O acesso será liberado após aprovação do administrador.");
