@@ -484,7 +484,7 @@ function Index() {
               <img
                 src={logoAsset.url}
                 alt="Link Group"
-                className="h-7 w-auto rounded-[4px] bg-white px-1.5 py-1 object-contain"
+                className="h-11 w-auto object-contain"
               />
               <button
                 type="button"
