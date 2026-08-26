@@ -1082,17 +1082,28 @@ function Index() {
                         </td>
                         <td className="border-b border-line p-2">
                           {!isApprover && (
-                            <button
-                              type="button"
-                              disabled={enviando || submetidas[item.id] === true}
-                              onClick={() => submeter(item.gerais, item.cards, item.id)}
-                              className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              <Send className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-                              {submetidas[item.id] === true
-                                ? "Submetida a aprovação"
-                                : "Submeter a aprovação"}
-                            </button>
+                            <div className="flex gap-2">
+                              {submetidas[item.id] !== true && (
+                                <button
+                                  type="button"
+                                  onClick={() => apagar(item)}
+                                  className="rounded-[5px] border border-danger bg-panel px-3 py-1 text-[11.5px] font-bold text-danger hover:bg-danger hover:text-primary-foreground"
+                                >
+                                  <Trash2 className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Apagar
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                disabled={enviando || submetidas[item.id] === true}
+                                onClick={() => submeter(item.gerais, item.cards, item.id)}
+                                className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <Send className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+                                {submetidas[item.id] === true
+                                  ? "Submetida a aprovação"
+                                  : "Submeter a aprovação"}
+                              </button>
+                            </div>
                           )}
                           {isApprover && (
                             <button
