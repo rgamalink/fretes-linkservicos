@@ -14,6 +14,17 @@ export interface UsuarioAcesso {
   role: PerfilUsuario;
 }
 
+/** Diz se o usuário logado tem perfil administrador (independente do e-mail fixo). */
+export async function souAdministrador(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return false;
+  return data.role === "administrador";
+}
+
 /** Retorna o status de acesso do usuário logado. */
 export async function meuAcesso(userId: string): Promise<AcessoStatus> {
   const { data, error } = await supabase

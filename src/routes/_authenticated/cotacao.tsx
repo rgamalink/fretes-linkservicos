@@ -8,6 +8,7 @@ import {
   definirPerfil,
   excluirUsuario,
   listarUsuarios,
+  souAdministrador,
   type PerfilUsuario,
   type UsuarioAcesso,
 } from "@/lib/acessos";
@@ -235,11 +236,15 @@ function Index() {
   }, [submetidas]);
 
 
-  const isApprover = (email ?? "").toLowerCase() === APPROVER_EMAIL;
+  const [perfilAdmin, setPerfilAdmin] = useState(false);
+  const isApprover = (email ?? "").toLowerCase() === APPROVER_EMAIL || perfilAdmin;
 
   useEffect(() => {
     setLista(getCotacoes());
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null);
+      if (data.user?.id) void souAdministrador(data.user.id).then(setPerfilAdmin);
+    });
     void carregarSubmissoes();
     void carregarUsuarios();
   }, []);
