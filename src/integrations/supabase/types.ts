@@ -120,6 +120,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title: string | null
+          role: string
           updated_at: string
         }
         Insert: {
@@ -129,6 +130,7 @@ export type Database = {
           full_name?: string | null
           id: string
           job_title?: string | null
+          role?: string
           updated_at?: string
         }
         Update: {
@@ -138,6 +140,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           job_title?: string | null
+          role?: string
           updated_at?: string
         }
         Relationships: []
@@ -189,6 +192,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_excluir_usuario: {
+        Args: {
+          target_id: string
+        }
+        Returns: undefined
+      }
+      admin_set_user_role: {
+        Args: {
+          new_role: string
+          target_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

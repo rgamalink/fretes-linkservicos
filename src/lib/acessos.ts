@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type AcessoStatus = "pendente" | "aprovado" | "reprovado";
+export type PerfilUsuario = "administrador" | "usuario";
 
 export interface UsuarioAcesso {
   id: string;
@@ -10,6 +11,7 @@ export interface UsuarioAcesso {
   access_status: string;
   created_at: string;
   access_decided_at: string | null;
+  role: PerfilUsuario;
 }
 
 /** Retorna o status de acesso do usuário logado. */
@@ -27,7 +29,7 @@ export async function meuAcesso(userId: string): Promise<AcessoStatus> {
 export async function listarUsuarios(): Promise<UsuarioAcesso[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, company, created_at")
+    .select("id, email, full_name, company, created_at, role")
     .order("created_at", { ascending: false });
   if (error) throw error;
 
@@ -50,6 +52,7 @@ export async function listarUsuarios(): Promise<UsuarioAcesso[]> {
       access_status: access?.access_status ?? "pendente",
       created_at: p.created_at,
       access_decided_at: access?.access_decided_at ?? null,
+      role: (p.role as PerfilUsuario) ?? "usuario",
     };
   }) as UsuarioAcesso[];
 }
@@ -65,5 +68,22 @@ export async function decidirAcesso(id: string, status: AcessoStatus) {
       access_decided_by: userData.user?.id ?? null,
     })
     .eq("user_id", id);
+  if (error) throw error;
+}
+
+/** Altera o perfil (administrador/usuario) de um usuário — apenas administrador, via RPC. */
+export async function definirPerfil(id: string, role: PerfilUsuario) {
+  const { error } = await supabase.rpc("admin_set_user_role", {
+    target_id: id,
+    new_role: role,
+  });
+  if (error) throw error;
+}
+
+/** Exclui o cadastro (profiles + user_access) de um usuário — apenas administrador, via RPC. */
+export async function excluirUsuario(id: string) {
+  const { error } = await supabase.rpc("admin_excluir_usuario", {
+    target_id: id,
+  });
   if (error) throw error;
 }
