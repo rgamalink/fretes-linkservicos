@@ -14,8 +14,10 @@ export const VALOR_MEDIO_POR_PRODUTO: Record<string, { avg: number; n: number }>
   "Gesso": { avg: 335.95, n: 8 },
   "Gusa": { avg: 2435.69, n: 378 },
   "Manganês": { avg: 13381.51, n: 92 },
+  "Milho": { avg: 1000.0, n: 1 },
   "Minério": { avg: 218.68, n: 7818 },
   "Outros": { avg: 66.74, n: 14 },
+  "Soja": { avg: 2300.0, n: 1 },
 };
 
 export const PRODUTOS_CONHECIDOS = Object.keys(VALOR_MEDIO_POR_PRODUTO);
