@@ -40,7 +40,7 @@ export async function meuAcesso(userId: string): Promise<AcessoStatus> {
 export async function listarUsuarios(): Promise<UsuarioAcesso[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, company, created_at, role")
+    .select("id, email, full_name, company, created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
 
@@ -53,6 +53,18 @@ export async function listarUsuarios(): Promise<UsuarioAcesso[]> {
     (accessData ?? []).map((a) => [a.user_id, a])
   );
 
+  // Consulta a coluna role à parte: se a migração que a adiciona ainda não
+  // foi aplicada ao banco, isso não deve impedir a lista de aparecer — só
+  // faz todo mundo cair no perfil padrão "usuario" até a migração rodar.
+  const roleMap = new Map<string, PerfilUsuario>();
+  try {
+    const { data: roleData, error: roleError } = await supabase.from("profiles").select("id, role");
+    if (roleError) throw roleError;
+    for (const r of roleData ?? []) roleMap.set(r.id, (r.role as PerfilUsuario) ?? "usuario");
+  } catch {
+    /* coluna profiles.role ainda não existe no banco */
+  }
+
   return (data ?? []).map((p) => {
     const access = accessMap.get(p.id);
     return {
@@ -63,7 +75,7 @@ export async function listarUsuarios(): Promise<UsuarioAcesso[]> {
       access_status: access?.access_status ?? "pendente",
       created_at: p.created_at,
       access_decided_at: access?.access_decided_at ?? null,
-      role: (p.role as PerfilUsuario) ?? "usuario",
+      role: roleMap.get(p.id) ?? "usuario",
     };
   }) as UsuarioAcesso[];
 }
@@ -79,15 +91,6 @@ export async function decidirAcesso(id: string, status: AcessoStatus) {
       access_decided_by: userData.user?.id ?? null,
     })
     .eq("user_id", id);
-  if (error) throw error;
-}
-
-/** Altera o perfil (administrador/usuario) de um usuário — apenas administrador, via RPC. */
-export async function definirPerfil(id: string, role: PerfilUsuario) {
-  const { error } = await supabase.rpc("admin_set_user_role", {
-    target_id: id,
-    new_role: role,
-  });
   if (error) throw error;
 }
 
