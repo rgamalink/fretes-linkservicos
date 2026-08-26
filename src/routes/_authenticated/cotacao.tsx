@@ -256,8 +256,14 @@ function Index() {
           : `Cotação submetida à aprovação de ${APPROVER_EMAIL}.`,
       );
       await carregarSubmissoes();
-    } catch {
-      toast.error("Não foi possível submeter a cotação à aprovação.");
+    } catch (err) {
+      console.error("Falha ao submeter cotação à aprovação:", err);
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(
+        detalhe
+          ? `Não foi possível submeter a cotação à aprovação: ${detalhe}`
+          : "Não foi possível submeter a cotação à aprovação.",
+      );
     } finally {
       setEnviando(false);
     }
@@ -314,8 +320,14 @@ function Index() {
       }));
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
-    } catch {
-      toast.error("Não foi possível registrar a decisão.");
+    } catch (err) {
+      console.error("Falha ao registrar decisão:", err);
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(
+        detalhe
+          ? `Não foi possível registrar a decisão: ${detalhe}`
+          : "Não foi possível registrar a decisão.",
+      );
     }
   };
 
@@ -342,8 +354,14 @@ function Index() {
       setDecisaoUI((prev) => ({ ...prev, [cotacaoId]: status }));
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
-    } catch {
-      toast.error("Não foi possível registrar a decisão.");
+    } catch (err) {
+      console.error("Falha ao registrar decisão:", err);
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(
+        detalhe
+          ? `Não foi possível registrar a decisão: ${detalhe}`
+          : "Não foi possível registrar a decisão.",
+      );
     } finally {
       setEnviando(false);
     }
