@@ -409,6 +409,23 @@ function Index() {
     toast.success("Cotação carregada.");
   };
 
+  const carregarSubmissao = (s: Submissao) => {
+    const dados = s.dados as { gerais?: DadosGerais; cards?: Record<number, DadosCard> } | null;
+    if (!dados?.gerais) {
+      toast.error("Não foi possível carregar essa cotação.");
+      return;
+    }
+    setGerais({ ...geraisVazio(), ...dados.gerais });
+    setCards(
+      Object.fromEntries(
+        EIXOS_LIST.map((e) => [e, { ...cardVazio(), ...(dados.cards?.[e] ?? {}) }]),
+      ),
+    );
+    setCotacaoAtualId(s.ref_local ?? s.id);
+    setAprovModalOpen(false);
+    toast.success("Cotação carregada.");
+  };
+
 
   const apagar = (c: Cotacao) =>
     setConfirm({
@@ -1069,6 +1086,7 @@ function Index() {
                     <th className="border-b-2 border-line p-2">Enviado por</th>
                     <th className="border-b-2 border-line p-2">Enviado em</th>
                     <th className="border-b-2 border-line p-2">Status</th>
+                    <th className="border-b-2 border-line p-2" />
                     <th className="border-b-2 border-line p-2" colSpan={2} />
                   </tr>
                 </thead>
@@ -1112,6 +1130,15 @@ function Index() {
                           </td>
                         );
                       })()}
+                      <td className="border-b border-line p-2">
+                        <button
+                          type="button"
+                          onClick={() => carregarSubmissao(s)}
+                          className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground"
+                        >
+                          Carregar
+                        </button>
+                      </td>
                       <td className="border-b border-line p-2">
                         <button
                           type="button"
