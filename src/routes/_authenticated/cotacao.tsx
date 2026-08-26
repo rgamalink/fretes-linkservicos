@@ -310,6 +310,35 @@ function Index() {
     [submissoes, decisaoUI],
   );
 
+  // Garante que exista uma cotação com esse id no localStorage deste
+  // navegador (sem sobrescrever se já existir), para que ela apareça em
+  // "Ver Cotações" mesmo quando o aprovador decide direto pela tela
+  // "Cotações para Aprovação", sem nunca ter salvo essa cotação antes.
+  const garantirCotacaoLocalComId = (
+    id: string,
+    salvoEm: string,
+    g: DadosGerais,
+    c: Record<number, DadosCard>,
+  ) => {
+    if (getCotacoes().some((x) => x.id === id)) return;
+    const nova: Cotacao = { id, salvoEm, gerais: g, cards: c };
+    const atual = [nova, ...getCotacoes()];
+    if (setCotacoes(atual)) setLista(atual);
+  };
+
+  const garantirCotacaoLocal = (s: Submissao) => {
+    const dados = s.dados as { gerais?: DadosGerais; cards?: Record<number, DadosCard> } | null;
+    if (!dados?.gerais) return;
+    garantirCotacaoLocalComId(
+      s.ref_local ?? s.id,
+      s.created_at,
+      dados.gerais,
+      Object.fromEntries(
+        EIXOS_LIST.map((e) => [e, { ...cardVazio(), ...(dados.cards?.[e] ?? {}) }]),
+      ),
+    );
+  };
+
   const decidir = async (s: Submissao, status: "aprovada" | "reprovada") => {
     try {
       await decidirSubmissao(s.id, status);
@@ -318,6 +347,7 @@ function Index() {
         [s.id]: status,
         ...(s.ref_local ? { [s.ref_local]: status } : {}),
       }));
+      garantirCotacaoLocal(s);
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
     } catch (err) {
@@ -352,6 +382,7 @@ function Index() {
         await submeterAprovacao(g, c, status, cotacaoId);
       }
       setDecisaoUI((prev) => ({ ...prev, [cotacaoId]: status }));
+      garantirCotacaoLocalComId(cotacaoId, new Date().toISOString(), g, c);
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
     } catch (err) {
