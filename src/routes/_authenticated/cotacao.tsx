@@ -163,6 +163,17 @@ function Index() {
     return { nome: partes[0], sobrenome: partes.slice(1).join(" ") };
   };
 
+  const [filtroPerfil, setFiltroPerfil] = useState<"todos" | PerfilUsuario>("todos");
+  const usuariosFiltrados = useMemo(
+    () =>
+      usuarios.filter((u) => {
+        if (filtroPerfil === "todos") return true;
+        const admin = ehEmailFixoAdmin(u.email) || u.role === "administrador";
+        return filtroPerfil === "administrador" ? admin : !admin;
+      }),
+    [usuarios, filtroPerfil],
+  );
+
   const [perfilEdit, setPerfilEdit] = useState<Record<string, PerfilUsuario>>({});
   const [salvandoPerfil, setSalvandoPerfil] = useState<string | null>(null);
 
@@ -1373,7 +1384,23 @@ function Index() {
           <DialogHeader>
             <DialogTitle>Configuração</DialogTitle>
           </DialogHeader>
-          {usuarios.length === 0 ? (
+          <div className="mb-3 flex items-center gap-2">
+            <label className="text-xs font-semibold text-ink-soft" htmlFor="filtro-perfil">
+              Filtrar por perfil
+            </label>
+            <select
+              id="filtro-perfil"
+              className={fieldCls}
+              style={{ maxWidth: 220 }}
+              value={filtroPerfil}
+              onChange={(e) => setFiltroPerfil(e.target.value as "todos" | PerfilUsuario)}
+            >
+              <option value="todos">Todos</option>
+              <option value="administrador">Administrador</option>
+              <option value="usuario">Usuário</option>
+            </select>
+          </div>
+          {usuariosFiltrados.length === 0 ? (
             <p className="text-[13px] text-ink-soft">Nenhum cadastro encontrado.</p>
           ) : (
             <div className="max-h-[60vh] overflow-auto">
@@ -1388,7 +1415,7 @@ function Index() {
                   </tr>
                 </thead>
                 <tbody>
-                  {usuarios.map((u) => {
+                  {usuariosFiltrados.map((u) => {
                     const { nome, sobrenome } = splitNome(u.full_name);
                     const perfil = perfilDe(u);
                     const fixo = ehEmailFixoAdmin(u.email);
