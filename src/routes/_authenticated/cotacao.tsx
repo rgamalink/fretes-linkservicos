@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Check, ClipboardList, LogOut, Plus, Save, Send, Trash2, UserCheck, X } from "lucide-react";
+import { Check, ClipboardList, LogOut, Plus, Save, Send, Settings, Trash2, UserCheck, X } from "lucide-react";
 import { decidirAcesso, listarUsuarios, type UsuarioAcesso } from "@/lib/acessos";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -136,8 +136,21 @@ function Index() {
   const [statusGeral, setStatusGeral] = useState<StatusCotacao[]>([]);
   const [aprovModalOpen, setAprovModalOpen] = useState(false);
   const [usuariosModalOpen, setUsuariosModalOpen] = useState(false);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
   const [usuarios, setUsuarios] = useState<UsuarioAcesso[]>([]);
   const usuariosPendentes = usuarios.filter((u) => u.access_status === "pendente").length;
+
+  // Perfil fixo por e-mail: mesma regra usada para o fluxo de aprovação
+  // (APPROVER_EMAIL) — sem campo editável no banco.
+  const perfilDe = (email: string | null) =>
+    (email ?? "").toLowerCase() === APPROVER_EMAIL ? "Administrador" : "Usuário";
+
+  const splitNome = (fullName: string | null) => {
+    const partes = (fullName || "").trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) return { nome: "—", sobrenome: "—" };
+    if (partes.length === 1) return { nome: partes[0], sobrenome: "—" };
+    return { nome: partes[0], sobrenome: partes.slice(1).join(" ") };
+  };
 
   const carregarUsuarios = async () => {
     try {
@@ -818,6 +831,16 @@ function Index() {
                     </span>
                   )}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfigModalOpen(true);
+                    void carregarUsuarios();
+                  }}
+                  className="rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
+                >
+                  <Settings className="mr-2 inline h-4 w-4 align-[-3px]" />Configuração
+                </button>
               </>
             )}
 
@@ -1288,6 +1311,50 @@ function Index() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={configModalOpen} onOpenChange={setConfigModalOpen}>
+        <DialogContent className="max-w-[1000px] w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Configuração</DialogTitle>
+          </DialogHeader>
+          {usuarios.length === 0 ? (
+            <p className="text-[13px] text-ink-soft">Nenhum cadastro encontrado.</p>
+          ) : (
+            <div className="max-h-[60vh] overflow-auto">
+              <table className="w-full min-w-max border-collapse whitespace-nowrap text-[13px]">
+                <thead>
+                  <tr className="text-left text-ink-soft">
+                    <th className="border-b border-line p-2">Nome</th>
+                    <th className="border-b border-line p-2">Sobrenome</th>
+                    <th className="border-b border-line p-2">E-mail</th>
+                    <th className="border-b border-line p-2">Perfil</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuarios.map((u) => {
+                    const { nome, sobrenome } = splitNome(u.full_name);
+                    const perfil = perfilDe(u.email);
+                    return (
+                      <tr key={u.id} className="hover:bg-secondary">
+                        <td className="border-b border-line p-2">{nome}</td>
+                        <td className="border-b border-line p-2">{sobrenome}</td>
+                        <td className="border-b border-line p-2">{u.email || "—"}</td>
+                        <td
+                          className={`border-b border-line p-2 font-semibold ${
+                            perfil === "Administrador" ? "text-navy" : "text-ink-soft"
+                          }`}
+                        >
+                          {perfil}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
