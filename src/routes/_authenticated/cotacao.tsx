@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Check, ClipboardList, LogOut, Plus, Save, Send, Settings, Trash2, UserCheck, X } from "lucide-react";
 import {
   decidirAcesso,
+  definirPerfil,
   excluirUsuario,
   listarUsuarios,
   souAdministrador,
@@ -160,16 +161,22 @@ function Index() {
     return { nome: partes[0], sobrenome: partes.slice(1).join(" ") };
   };
 
-  const [filtroPerfil, setFiltroPerfil] = useState<"todos" | PerfilUsuario>("todos");
-  const usuariosFiltrados = useMemo(
-    () =>
-      usuarios.filter((u) => {
-        if (filtroPerfil === "todos") return true;
-        const admin = ehEmailFixoAdmin(u.email) || u.role === "administrador";
-        return filtroPerfil === "administrador" ? admin : !admin;
-      }),
-    [usuarios, filtroPerfil],
-  );
+  const [salvandoPerfil, setSalvandoPerfil] = useState<string | null>(null);
+
+  const alterarPerfil = async (u: UsuarioAcesso, novoPerfil: PerfilUsuario) => {
+    if (novoPerfil === u.role) return;
+    setSalvandoPerfil(u.id);
+    try {
+      await definirPerfil(u.id, novoPerfil);
+      toast.success("Perfil atualizado.");
+      await carregarUsuarios();
+    } catch (err) {
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(detalhe ? `Não foi possível atualizar o perfil: ${detalhe}` : "Não foi possível atualizar o perfil.");
+    } finally {
+      setSalvandoPerfil(null);
+    }
+  };
 
   const excluirUsuarioClick = (u: UsuarioAcesso) =>
     setConfirm({
@@ -1363,23 +1370,7 @@ function Index() {
           <DialogHeader>
             <DialogTitle>Configuração</DialogTitle>
           </DialogHeader>
-          <div className="mb-3 flex items-center gap-2">
-            <label className="text-xs font-semibold text-ink-soft" htmlFor="filtro-perfil">
-              Filtrar por perfil
-            </label>
-            <select
-              id="filtro-perfil"
-              className={fieldCls}
-              style={{ maxWidth: 220 }}
-              value={filtroPerfil}
-              onChange={(e) => setFiltroPerfil(e.target.value as "todos" | PerfilUsuario)}
-            >
-              <option value="todos">Todos</option>
-              <option value="administrador">Administrador</option>
-              <option value="usuario">Usuário</option>
-            </select>
-          </div>
-          {usuariosFiltrados.length === 0 ? (
+          {usuarios.length === 0 ? (
             <p className="text-[13px] text-ink-soft">Nenhum cadastro encontrado.</p>
           ) : (
             <div className="max-h-[60vh] overflow-auto">
@@ -1389,11 +1380,12 @@ function Index() {
                     <th className="border-b border-line p-2">Nome</th>
                     <th className="border-b border-line p-2">Sobrenome</th>
                     <th className="border-b border-line p-2">E-mail</th>
+                    <th className="border-b border-line p-2">Perfil</th>
                     <th className="border-b border-line p-2">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {usuariosFiltrados.map((u) => {
+                  {usuarios.map((u) => {
                     const { nome, sobrenome } = splitNome(u.full_name);
                     const fixo = ehEmailFixoAdmin(u.email);
                     return (
@@ -1401,6 +1393,21 @@ function Index() {
                         <td className="border-b border-line p-2">{nome}</td>
                         <td className="border-b border-line p-2">{sobrenome}</td>
                         <td className="border-b border-line p-2">{u.email || "—"}</td>
+                        <td className="border-b border-line p-2">
+                          {fixo ? (
+                            <span className="font-semibold text-navy">Administrador</span>
+                          ) : (
+                            <select
+                              className={fieldCls}
+                              value={u.role}
+                              disabled={salvandoPerfil === u.id}
+                              onChange={(e) => void alterarPerfil(u, e.target.value as PerfilUsuario)}
+                            >
+                              <option value="usuario">Usuário</option>
+                              <option value="administrador">Administrador</option>
+                            </select>
+                          )}
+                        </td>
                         <td className="border-b border-line p-2">
                           {!fixo && (
                             <button
