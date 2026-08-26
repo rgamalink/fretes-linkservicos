@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Check, ClipboardList, LogOut, Plus, Save, Send, Settings, Trash2, UserCheck, X } from "lucide-react";
 import {
   decidirAcesso,
-  definirPerfil,
   excluirUsuario,
   listarUsuarios,
   souAdministrador,
@@ -150,11 +149,9 @@ function Index() {
 
   // rodrigo.gama@linkbr.com é sempre administrador, independentemente do
   // perfil salvo (mesma regra do backend em private.is_approver()); os
-  // demais usuários seguem o campo role, editável por um administrador.
+  // demais usuários seguem o campo role.
   const ehEmailFixoAdmin = (email: string | null) =>
     (email ?? "").toLowerCase() === APPROVER_EMAIL;
-  const perfilDe = (u: UsuarioAcesso) =>
-    ehEmailFixoAdmin(u.email) || u.role === "administrador" ? "Administrador" : "Usuário";
 
   const splitNome = (fullName: string | null) => {
     const partes = (fullName || "").trim().split(/\s+/).filter(Boolean);
@@ -173,24 +170,6 @@ function Index() {
       }),
     [usuarios, filtroPerfil],
   );
-
-  const [perfilEdit, setPerfilEdit] = useState<Record<string, PerfilUsuario>>({});
-  const [salvandoPerfil, setSalvandoPerfil] = useState<string | null>(null);
-
-  const salvarPerfilUsuario = async (u: UsuarioAcesso) => {
-    const novoPerfil = perfilEdit[u.id] ?? u.role;
-    setSalvandoPerfil(u.id);
-    try {
-      await definirPerfil(u.id, novoPerfil);
-      toast.success("Perfil atualizado.");
-      await carregarUsuarios();
-    } catch (err) {
-      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
-      toast.error(detalhe ? `Não foi possível atualizar o perfil: ${detalhe}` : "Não foi possível atualizar o perfil.");
-    } finally {
-      setSalvandoPerfil(null);
-    }
-  };
 
   const excluirUsuarioClick = (u: UsuarioAcesso) =>
     setConfirm({
@@ -1410,53 +1389,18 @@ function Index() {
                     <th className="border-b border-line p-2">Nome</th>
                     <th className="border-b border-line p-2">Sobrenome</th>
                     <th className="border-b border-line p-2">E-mail</th>
-                    <th className="border-b border-line p-2">Perfil</th>
-                    <th className="border-b border-line p-2" colSpan={2}>Ações</th>
+                    <th className="border-b border-line p-2">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {usuariosFiltrados.map((u) => {
                     const { nome, sobrenome } = splitNome(u.full_name);
-                    const perfil = perfilDe(u);
                     const fixo = ehEmailFixoAdmin(u.email);
-                    const valorSelecionado = perfilEdit[u.id] ?? u.role;
-                    const alterado = valorSelecionado !== u.role;
                     return (
                       <tr key={u.id} className="hover:bg-secondary">
                         <td className="border-b border-line p-2">{nome}</td>
                         <td className="border-b border-line p-2">{sobrenome}</td>
                         <td className="border-b border-line p-2">{u.email || "—"}</td>
-                        <td className="border-b border-line p-2">
-                          {fixo ? (
-                            <span className="font-semibold text-navy">{perfil}</span>
-                          ) : (
-                            <select
-                              className={fieldCls}
-                              value={valorSelecionado}
-                              onChange={(e) =>
-                                setPerfilEdit((prev) => ({
-                                  ...prev,
-                                  [u.id]: e.target.value as PerfilUsuario,
-                                }))
-                              }
-                            >
-                              <option value="usuario">Usuário</option>
-                              <option value="administrador">Administrador</option>
-                            </select>
-                          )}
-                        </td>
-                        <td className="border-b border-line p-2">
-                          {!fixo && (
-                            <button
-                              type="button"
-                              disabled={!alterado || salvandoPerfil === u.id}
-                              onClick={() => void salvarPerfilUsuario(u)}
-                              className="rounded-[6px] bg-navy px-3 py-1.5 text-[12px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <Save className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Salvar
-                            </button>
-                          )}
-                        </td>
                         <td className="border-b border-line p-2">
                           {!fixo && (
                             <button
