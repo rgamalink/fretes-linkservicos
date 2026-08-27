@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Check, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, Trash2, UserCheck, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, Trash2, X } from "lucide-react";
 import {
   decidirAcesso,
   definirPerfil,
@@ -96,16 +96,37 @@ const labelCls = "mb-1.5 block text-xs font-semibold text-ink-soft";
 function Panel({
   title,
   children,
+  collapsible,
 }: {
   title: string;
   children: React.ReactNode;
+  collapsible?: boolean;
 }) {
+  const [aberto, setAberto] = useState(true);
   return (
     <section className="mt-[22px] rounded-xl border border-line bg-panel px-[22px] py-5">
-      <h2 className="mb-4 text-[15px] font-bold uppercase tracking-[0.06em] text-ink-soft">
-        {title}
-      </h2>
-      {children}
+      <div
+        className={`flex items-center justify-between ${aberto ? "mb-4" : ""} ${collapsible ? "cursor-pointer select-none" : ""}`}
+        onClick={collapsible ? () => setAberto((v) => !v) : undefined}
+      >
+        <h2 className="text-[15px] font-bold uppercase tracking-[0.06em] text-ink-soft">
+          {title}
+        </h2>
+        {collapsible && (
+          <button
+            type="button"
+            aria-label={aberto ? "Recolher" : "Expandir"}
+            className="text-ink-soft transition-transform"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAberto((v) => !v);
+            }}
+          >
+            <ChevronDown className={`h-5 w-5 transition-transform ${aberto ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
+      {(!collapsible || aberto) && children}
     </section>
   );
 }
@@ -144,7 +165,6 @@ function Index() {
   const [submissoes, setSubmissoes] = useState<Submissao[]>([]);
   const [statusGeral, setStatusGeral] = useState<StatusCotacao[]>([]);
   const [aprovModalOpen, setAprovModalOpen] = useState(false);
-  const [usuariosModalOpen, setUsuariosModalOpen] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [usuarios, setUsuarios] = useState<UsuarioAcesso[]>([]);
   const usuariosPendentes = usuarios.filter((u) => u.access_status === "pendente").length;
@@ -755,7 +775,7 @@ function Index() {
       </div>
 
       <div className="mx-auto max-w-[1440px] px-6 pb-15">
-        <Panel title="Dados da Cotação (aplicam-se aos 4 cards)">
+        <Panel title="Dados da Cotação (aplicam-se aos 4 cards)" collapsible>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-2.5">
             <div>
               <label className={labelCls}>Nome do Cliente</label>
@@ -892,17 +912,17 @@ function Index() {
           <div className="mt-4 flex flex-wrap gap-2.5">
             <button
               type="button"
-              onClick={salvar}
-              className="rounded-[7px] border border-navy bg-navy px-4 py-2.5 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-navy-2"
-            >
-              <Save className="mr-2 inline h-4 w-4 align-[-3px]" />Salvar Cotação
-            </button>
-            <button
-              type="button"
               onClick={novaCotacao}
               className="rounded-[7px] border border-line bg-panel px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:bg-secondary"
             >
               <Plus className="mr-2 inline h-4 w-4 align-[-3px]" />Nova Cotação
+            </button>
+            <button
+              type="button"
+              onClick={salvar}
+              className="rounded-[7px] border border-navy bg-navy px-4 py-2.5 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-navy-2"
+            >
+              <Save className="mr-2 inline h-4 w-4 align-[-3px]" />Salvar Cotação
             </button>
             <button
               type="button"
@@ -996,27 +1016,17 @@ function Index() {
                 <button
                   type="button"
                   onClick={() => {
-                    setUsuariosModalOpen(true);
+                    setConfigModalOpen(true);
                     void carregarUsuarios();
                   }}
-                  className="rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
+                  className="ml-auto rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
                 >
-                  <UserCheck className="mr-2 inline h-4 w-4 align-[-3px]" />Aprovação de Logins
+                  <Settings className="mr-2 inline h-4 w-4 align-[-3px]" />Configuração
                   {usuariosPendentes > 0 && (
                     <span className="ml-2 rounded-full bg-danger px-2 py-0.5 text-[11px] text-primary-foreground">
                       {usuariosPendentes}
                     </span>
                   )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfigModalOpen(true);
-                    void carregarUsuarios();
-                  }}
-                  className="rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
-                >
-                  <Settings className="mr-2 inline h-4 w-4 align-[-3px]" />Configuração
                 </button>
               </>
             )}
@@ -1516,77 +1526,8 @@ function Index() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={usuariosModalOpen} onOpenChange={setUsuariosModalOpen}>
-        <DialogContent className="max-w-[1200px] w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>Aprovação de Logins</DialogTitle>
-          </DialogHeader>
-          {usuarios.length === 0 ? (
-            <p className="text-[13px] text-ink-soft">Nenhum cadastro encontrado.</p>
-          ) : (
-            <div className="max-h-[60vh] overflow-auto">
-              <table className="w-full min-w-max border-collapse whitespace-nowrap text-[13px]">
-                <thead>
-                  <tr className="text-left text-ink-soft">
-                    <th className="border-b border-line p-2">E-mail</th>
-                    <th className="border-b border-line p-2">Nome</th>
-                    <th className="border-b border-line p-2">Empresa</th>
-                    <th className="border-b border-line p-2">Cadastro</th>
-                    <th className="border-b border-line p-2">Status</th>
-                    <th className="border-b border-line p-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuarios.map((u) => (
-                    <tr key={u.id} className="hover:bg-secondary">
-                      <td className="border-b border-line p-2">{u.email || "—"}</td>
-                      <td className="border-b border-line p-2">{u.full_name || "—"}</td>
-                      <td className="border-b border-line p-2">{u.company || "—"}</td>
-                      <td className="border-b border-line p-2">
-                        {new Date(u.created_at).toLocaleString("pt-BR")}
-                      </td>
-                      <td
-                        className={`border-b border-line p-2 font-semibold capitalize ${
-                          u.access_status === "aprovado"
-                            ? "text-success"
-                            : u.access_status === "reprovado"
-                              ? "text-danger"
-                              : "text-ink-soft"
-                        }`}
-                      >
-                        {u.access_status}
-                      </td>
-                      <td className="border-b border-line p-2">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            disabled={u.access_status === "aprovado"}
-                            onClick={() => void decidirUsuario(u, "aprovado")}
-                            className="rounded-[6px] bg-navy px-3 py-1.5 text-[12px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-                          >
-                            Aprovar
-                          </button>
-                          <button
-                            type="button"
-                            disabled={u.access_status === "reprovado"}
-                            onClick={() => void decidirUsuario(u, "reprovado")}
-                            className="rounded-[6px] border border-line px-3 py-1.5 text-[12px] font-bold text-danger transition-colors hover:bg-secondary disabled:opacity-40"
-                          >
-                            Reprovar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={configModalOpen} onOpenChange={setConfigModalOpen}>
-        <DialogContent className="max-w-[1000px] w-[95vw]">
+        <DialogContent className="max-w-[1150px] w-[95vw]">
           <DialogHeader>
             <DialogTitle>Configuração</DialogTitle>
           </DialogHeader>
@@ -1600,6 +1541,7 @@ function Index() {
                     <th className="border-b border-line p-2">Nome</th>
                     <th className="border-b border-line p-2">Sobrenome</th>
                     <th className="border-b border-line p-2">E-mail</th>
+                    <th className="border-b border-line p-2">Acesso</th>
                     <th className="border-b border-line p-2">Perfil</th>
                     <th className="border-b border-line p-2">Ações</th>
                   </tr>
@@ -1613,6 +1555,39 @@ function Index() {
                         <td className="border-b border-line p-2">{nome}</td>
                         <td className="border-b border-line p-2">{sobrenome}</td>
                         <td className="border-b border-line p-2">{u.email || "—"}</td>
+                        <td className="border-b border-line p-2">
+                          <div className="flex flex-col gap-1">
+                            <span
+                              className={`font-semibold capitalize ${
+                                u.access_status === "aprovado"
+                                  ? "text-success"
+                                  : u.access_status === "reprovado"
+                                    ? "text-danger"
+                                    : "text-ink-soft"
+                              }`}
+                            >
+                              {u.access_status}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                disabled={u.access_status === "aprovado"}
+                                onClick={() => void decidirUsuario(u, "aprovado")}
+                                className="rounded-[6px] bg-navy px-2.5 py-1 text-[11.5px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                              >
+                                Aprovar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={u.access_status === "reprovado"}
+                                onClick={() => void decidirUsuario(u, "reprovado")}
+                                className="rounded-[6px] border border-line px-2.5 py-1 text-[11.5px] font-bold text-danger transition-colors hover:bg-secondary disabled:opacity-40"
+                              >
+                                Reprovar
+                              </button>
+                            </div>
+                          </div>
+                        </td>
                         <td className="border-b border-line p-2">
                           {fixo ? (
                             <span className="font-semibold text-navy">Administrador</span>
