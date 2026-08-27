@@ -1556,36 +1556,31 @@ function Index() {
                         <td className="border-b border-line p-2">{sobrenome}</td>
                         <td className="border-b border-line p-2">{u.email || "—"}</td>
                         <td className="border-b border-line p-2">
-                          <div className="flex flex-col gap-1">
-                            <span
-                              className={`font-semibold capitalize ${
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={u.access_status === "aprovado"}
+                              onClick={() => void decidirUsuario(u, "aprovado")}
+                              className={`rounded-[6px] px-2.5 py-1 text-[11.5px] font-bold text-primary-foreground transition-colors disabled:cursor-not-allowed ${
                                 u.access_status === "aprovado"
-                                  ? "text-success"
-                                  : u.access_status === "reprovado"
-                                    ? "text-danger"
-                                    : "text-ink-soft"
+                                  ? "bg-ink-soft"
+                                  : "bg-navy hover:opacity-90"
                               }`}
                             >
-                              {u.access_status}
-                            </span>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                disabled={u.access_status === "aprovado"}
-                                onClick={() => void decidirUsuario(u, "aprovado")}
-                                className="rounded-[6px] bg-navy px-2.5 py-1 text-[11.5px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-                              >
-                                Aprovar
-                              </button>
-                              <button
-                                type="button"
-                                disabled={u.access_status === "reprovado"}
-                                onClick={() => void decidirUsuario(u, "reprovado")}
-                                className="rounded-[6px] border border-line px-2.5 py-1 text-[11.5px] font-bold text-danger transition-colors hover:bg-secondary disabled:opacity-40"
-                              >
-                                Reprovar
-                              </button>
-                            </div>
+                              Aprovar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={u.access_status === "reprovado"}
+                              onClick={() => void decidirUsuario(u, "reprovado")}
+                              className={`rounded-[6px] px-2.5 py-1 text-[11.5px] font-bold transition-colors disabled:cursor-not-allowed ${
+                                u.access_status === "reprovado"
+                                  ? "bg-ink-soft text-primary-foreground"
+                                  : "border border-line text-danger hover:bg-secondary"
+                              }`}
+                            >
+                              Reprovar
+                            </button>
                           </div>
                         </td>
                         <td className="border-b border-line p-2">
