@@ -15,6 +15,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import {
+  apagarSubmissoes,
   APPROVER_EMAIL,
   decidirSubmissao,
   listarStatusCotacoes,
@@ -369,6 +370,35 @@ function Index() {
     () => submissoes.filter((s) => s.status === "pendente" || decisaoUI[s.id]),
     [submissoes, decisaoUI],
   );
+
+  const [submissoesSelecionadas, setSubmissoesSelecionadas] = useState<Record<string, boolean>>({});
+  const toggleSubmissaoSelecionada = (id: string) =>
+    setSubmissoesSelecionadas((prev) => ({ ...prev, [id]: !prev[id] }));
+  const totalSubmissoesSelecionadas = useMemo(
+    () => pendentes.filter((s) => submissoesSelecionadas[s.id]).length,
+    [pendentes, submissoesSelecionadas],
+  );
+
+  const apagarSubmissoesSelecionadas = () => {
+    const ids = pendentes.filter((s) => submissoesSelecionadas[s.id]).map((s) => s.id);
+    if (ids.length === 0) return;
+    setConfirm({
+      msg: `Tem certeza que deseja apagar ${ids.length} cotação(ões) submetida(s)? Essa ação não pode ser desfeita.`,
+      action: () => {
+        void (async () => {
+          try {
+            await apagarSubmissoes(ids);
+            setSubmissoesSelecionadas({});
+            toast.success(`${ids.length} cotação(ões) apagada(s).`);
+            await carregarSubmissoes();
+          } catch (err) {
+            const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+            toast.error(detalhe ? `Não foi possível apagar: ${detalhe}` : "Não foi possível apagar as cotações selecionadas.");
+          }
+        })();
+      },
+    });
+  };
 
   // Garante que exista uma cotação com esse id no localStorage deste
   // navegador (sem sobrescrever se já existir), para que ela apareça em
@@ -1354,10 +1384,41 @@ function Index() {
               Nenhuma cotação pendente de aprovação.
             </div>
           ) : (
-            <div className="max-h-[50vh] overflow-auto">
+            <>
+              <div className="mb-3 flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-[12.5px] font-semibold text-navy">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-navy"
+                    checked={pendentes.length > 0 && pendentes.every((s) => submissoesSelecionadas[s.id])}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const next: Record<string, boolean> = { ...submissoesSelecionadas };
+                        for (const s of pendentes) next[s.id] = true;
+                        setSubmissoesSelecionadas(next);
+                      } else {
+                        setSubmissoesSelecionadas({});
+                      }
+                    }}
+                  />
+                  Selecionar todas
+                </label>
+                {totalSubmissoesSelecionadas > 0 && (
+                  <button
+                    type="button"
+                    onClick={apagarSubmissoesSelecionadas}
+                    className="rounded-[5px] border border-danger bg-panel px-3 py-1.5 text-[11.5px] font-bold text-danger hover:bg-danger hover:text-primary-foreground"
+                  >
+                    <Trash2 className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+                    Apagar selecionadas ({totalSubmissoesSelecionadas})
+                  </button>
+                )}
+              </div>
+              <div className="max-h-[50vh] overflow-auto">
               <table className="w-full min-w-max border-collapse whitespace-nowrap text-[12.5px]">
                 <thead>
                   <tr className="text-left text-ink-soft">
+                    <th className="border-b-2 border-line p-2" />
                     <th className="border-b-2 border-line p-2">Ref.</th>
                     <th className="border-b-2 border-line p-2">Cliente</th>
                     <th className="border-b-2 border-line p-2">Origem</th>
@@ -1372,6 +1433,15 @@ function Index() {
                 <tbody>
                   {pendentes.map((s) => (
                     <tr key={s.id} className="hover:bg-secondary">
+                      <td className="border-b border-line p-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-navy"
+                          aria-label={`Marcar cotação de ${s.cliente || "cliente"}`}
+                          checked={submissoesSelecionadas[s.id] === true}
+                          onChange={() => toggleSubmissaoSelecionada(s.id)}
+                        />
+                      </td>
                       <td
                         className="border-b border-line p-2 font-mono text-[11px] text-ink-soft"
                         title={s.ref_local ?? s.id}
@@ -1440,7 +1510,8 @@ function Index() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
