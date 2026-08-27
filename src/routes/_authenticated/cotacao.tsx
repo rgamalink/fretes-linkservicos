@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Check, ClipboardList, LogOut, Plus, Save, Send, Settings, Trash2, UserCheck, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, Trash2, UserCheck, X } from "lucide-react";
 import {
   decidirAcesso,
   definirPerfil,
@@ -482,15 +482,55 @@ function Index() {
   };
 
 
+  /** Sobrescreve uma cotação já salva (mesmo id), em vez de criar uma nova. */
+  const sobrescreverCotacao = (id: string, g: DadosGerais, c: Record<number, DadosCard>) => {
+    const atual = getCotacoes().map((x) =>
+      x.id === id ? { ...x, gerais: g, cards: c, salvoEm: new Date().toISOString() } : x,
+    );
+    if (setCotacoes(atual)) {
+      setLista(atual);
+      toast.success("Cotação atualizada com sucesso.");
+    } else {
+      toast.error("Não foi possível atualizar a cotação.");
+    }
+  };
+
   const salvar = () => {
     if (!gerais.cliente.trim()) {
       toast.warning("Informe o Nome do Cliente antes de salvar.");
+      return;
+    }
+    // Administrador editando uma cotação já carregada: pergunta antes de
+    // sobrepor, em vez de sempre criar uma cotação nova.
+    const existente = cotacaoAtualId ? getCotacoes().find((x) => x.id === cotacaoAtualId) : null;
+    if (isApprover && existente) {
+      setConfirm({
+        msg: "Já existe uma cotação salva com essas informações. Deseja sobrepor a alteração salva anteriormente?",
+        action: () => sobrescreverCotacao(existente.id, gerais, cards),
+      });
       return;
     }
     if (salvarCotacao(gerais, cards)) {
       toast.success("Cotação salva com sucesso.");
     } else {
       toast.error("Não foi possível salvar (armazenamento indisponível).");
+    }
+  };
+
+  /** Cria uma cópia independente da cotação, com novo id. */
+  const duplicar = (c: Cotacao) => {
+    const nova: Cotacao = {
+      id: gerarId(),
+      salvoEm: new Date().toISOString(),
+      gerais: { ...c.gerais },
+      cards: { ...c.cards },
+    };
+    const atual = [nova, ...getCotacoes()];
+    if (setCotacoes(atual)) {
+      setLista(atual);
+      toast.success("Cotação duplicada.");
+    } else {
+      toast.error("Não foi possível duplicar a cotação.");
     }
   };
 
@@ -572,6 +612,66 @@ function Index() {
       }),
     [lista, filtros],
   );
+
+  type CampoOrdenacao =
+    | "id"
+    | "cliente"
+    | "origem"
+    | "destino"
+    | "salvoEm"
+    | "status"
+    | "eixosAprovados"
+    | "pfpj";
+  const [ordenacao, setOrdenacao] = useState<{ campo: CampoOrdenacao; direcao: "asc" | "desc" } | null>(
+    null,
+  );
+
+  const alternarOrdenacao = (campo: CampoOrdenacao) =>
+    setOrdenacao((prev) => {
+      if (!prev || prev.campo !== campo) return { campo, direcao: "asc" };
+      if (prev.direcao === "asc") return { campo, direcao: "desc" };
+      return null;
+    });
+
+  const indicadorOrdenacao = (campo: CampoOrdenacao) => {
+    if (ordenacao?.campo !== campo) return null;
+    const Icone = ordenacao.direcao === "asc" ? ArrowUp : ArrowDown;
+    return <Icone className="ml-1 inline h-3 w-3 align-[-1px]" />;
+  };
+
+  const valorOrdenacao = (item: Cotacao, campo: CampoOrdenacao): string | number => {
+    switch (campo) {
+      case "id":
+        return item.id;
+      case "cliente":
+        return (item.gerais.cliente || "").toLowerCase();
+      case "origem":
+        return (item.gerais.origem || "").toLowerCase();
+      case "destino":
+        return (item.gerais.destino || "").toLowerCase();
+      case "salvoEm":
+        return new Date(item.salvoEm).getTime();
+      case "status":
+        return decisaoUI[item.id] ?? statusPorCotacao[item.id] ?? "pendente";
+      case "eixosAprovados":
+        return EIXOS_LIST.filter((e) => item.cards[e]?.status.startsWith("Aprovado")).length;
+      case "pfpj":
+        return item.gerais.pfpj;
+    }
+  };
+
+  const filtradaOrdenada = useMemo(() => {
+    if (!ordenacao) return filtrada;
+    const { campo, direcao } = ordenacao;
+    return [...filtrada].sort((a, b) => {
+      const va = valorOrdenacao(a, campo);
+      const vb = valorOrdenacao(b, campo);
+      if (va < vb) return direcao === "asc" ? -1 : 1;
+      if (va > vb) return direcao === "asc" ? 1 : -1;
+      return 0;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrada, ordenacao, decisaoUI, statusPorCotacao]);
 
   const selecionaveis = useMemo(
     () => filtrada.filter((c) => submetidas[c.id] !== true),
@@ -1071,20 +1171,60 @@ function Index() {
                 <thead>
                   <tr className="text-left text-ink-soft">
                     {!isApprover && <th className="border-b-2 border-line p-2" />}
-                    <th className="border-b-2 border-line p-2">Ref.</th>
-                    <th className="border-b-2 border-line p-2">Cliente</th>
-                    <th className="border-b-2 border-line p-2">Origem</th>
-                    <th className="border-b-2 border-line p-2">Destino</th>
-                    <th className="border-b-2 border-line p-2">Salvo em</th>
-                    <th className="border-b-2 border-line p-2">Status</th>
-                    <th className="border-b-2 border-line p-2">Eixos Aprovados</th>
-                    <th className="border-b-2 border-line p-2">PF/PJ</th>
-                    <th className="border-b-2 border-line p-2" colSpan={2}>Ações</th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("id")}
+                    >
+                      Ref.{indicadorOrdenacao("id")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("cliente")}
+                    >
+                      Cliente{indicadorOrdenacao("cliente")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("origem")}
+                    >
+                      Origem{indicadorOrdenacao("origem")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("destino")}
+                    >
+                      Destino{indicadorOrdenacao("destino")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("salvoEm")}
+                    >
+                      Salvo em{indicadorOrdenacao("salvoEm")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("status")}
+                    >
+                      Status{indicadorOrdenacao("status")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("eixosAprovados")}
+                    >
+                      Eixos Aprovados{indicadorOrdenacao("eixosAprovados")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("pfpj")}
+                    >
+                      PF/PJ{indicadorOrdenacao("pfpj")}
+                    </th>
+                    <th className="border-b-2 border-line p-2" colSpan={3}>Ações</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filtrada.map((item) => {
+                  {filtradaOrdenada.map((item) => {
                     const chaveItem = item.id;
                     const statusCotacao =
                       decisaoUI[chaveItem] ?? statusPorCotacao[chaveItem] ?? "pendente";
@@ -1148,6 +1288,15 @@ function Index() {
                             className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground"
                           >
                             Carregar
+                          </button>
+                        </td>
+                        <td className="border-b border-line p-2">
+                          <button
+                            type="button"
+                            onClick={() => duplicar(item)}
+                            className="rounded-[5px] border border-navy bg-panel px-3 py-1 text-[11.5px] font-bold text-navy hover:bg-navy hover:text-primary-foreground"
+                          >
+                            <Copy className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Duplicar
                           </button>
                         </td>
                         <td className="border-b border-line p-2">
