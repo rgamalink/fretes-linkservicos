@@ -80,6 +80,12 @@ export async function listarStatusCotacoes(): Promise<StatusCotacao[]> {
 }
 
 
+/** Apaga uma ou mais submissões (apenas aprovador via RLS). */
+export async function apagarSubmissoes(ids: string[]) {
+  const { error } = await supabase.from("cotacoes_aprovacao").delete().in("id", ids);
+  if (error) throw error;
+}
+
 export async function decidirSubmissao(id: string, status: SubmissaoStatus) {
   const { data: userData } = await supabase.auth.getUser();
   const { error } = await supabase
