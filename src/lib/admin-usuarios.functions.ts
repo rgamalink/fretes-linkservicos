@@ -87,6 +87,9 @@ export const adminExcluirUsuario = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertNotProtected(supabaseAdmin, data.targetId);
 
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.targetId);
+
+
     const { error: accessError } = await supabaseAdmin
       .from("user_access")
       .delete()
