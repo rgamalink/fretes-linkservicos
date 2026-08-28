@@ -94,19 +94,15 @@ export async function decidirAcesso(id: string, status: AcessoStatus) {
   if (error) throw error;
 }
 
-/** Altera o perfil (administrador/usuario) de um usuário — apenas administrador, via RPC. */
+/** Altera o perfil (administrador/usuario) de um usuário — validado no servidor. */
 export async function definirPerfil(id: string, role: PerfilUsuario) {
-  const { error } = await supabase.rpc("admin_set_user_role", {
-    target_id: id,
-    new_role: role,
-  });
-  if (error) throw error;
+  const { adminDefinirPerfil } = await import("@/lib/admin-usuarios.functions");
+  await adminDefinirPerfil({ data: { targetId: id, role } });
 }
 
-/** Exclui o cadastro (profiles + user_access) de um usuário — apenas administrador, via RPC. */
+/** Exclui o cadastro (profiles + user_access) de um usuário — validado no servidor. */
 export async function excluirUsuario(id: string) {
-  const { error } = await supabase.rpc("admin_excluir_usuario", {
-    target_id: id,
-  });
-  if (error) throw error;
+  const { adminExcluirUsuario } = await import("@/lib/admin-usuarios.functions");
+  await adminExcluirUsuario({ data: { targetId: id } });
 }
+
