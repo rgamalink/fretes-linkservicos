@@ -131,10 +131,43 @@ function Panel({
   );
 }
 
+/**
+ * Detecta (de forma aproximada) se o navegador está com zoom da página em
+ * ~90% ou menos em relação ao zoom com que a página foi carregada.
+ *
+ * Não existe uma API que exponha o nível de zoom diretamente, mas o zoom da
+ * página altera `window.devicePixelRatio` (diferente do zoom do sistema
+ * operacional/monitor, que não muda em tempo real). Comparamos o valor atual
+ * com o valor capturado no carregamento para estimar a razão de zoom.
+ */
+function useZoomReduzido(limiar = 0.91) {
+  const [zoomReduzido, setZoomReduzido] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const dprBase = window.devicePixelRatio || 1;
+
+    const verificar = () => {
+      const dprAtual = window.devicePixelRatio || 1;
+      setZoomReduzido(dprAtual / dprBase <= limiar);
+    };
+
+    verificar();
+    window.addEventListener("resize", verificar);
+    return () => window.removeEventListener("resize", verificar);
+  }, [limiar]);
+
+  return zoomReduzido;
+}
+
 function Index() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [gerais, setGerais] = useState<DadosGerais>(geraisVazio);
+  // Com o zoom do navegador em ~90% ou menos, os 4 cards passam para um
+  // layout mais compacto (menos espaçamento entre linhas) para caber
+  // inteiros na tela, independentemente do painel "Dados da Cotação".
+  const cardsCompactos = useZoomReduzido();
 
   async function sair() {
     await queryClient.cancelQueries();
@@ -1034,13 +1067,18 @@ function Index() {
           </div>
         </Panel>
 
-        <div className="mt-[22px] grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+        <div
+          className={`mt-[22px] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 ${
+            cardsCompactos ? "gap-2.5" : "gap-[18px]"
+          }`}
+        >
           {EIXOS_LIST.map((eixos) => (
             <FreightCard
               key={eixos}
               eixos={eixos}
               gerais={gerais}
               card={cards[eixos]!}
+              compacto={cardsCompactos}
               onChange={(patch) =>
                 setCards((prev) => ({
                   ...prev,
