@@ -49,8 +49,32 @@ export const adminDefinirPerfil = createServerFn({ method: "POST" })
       console.error("[adminDefinirPerfil]", error);
       throw new Error("Não foi possível alterar o perfil.");
     }
+
+    // As políticas de acesso (RLS) usam public.user_roles, então o papel
+    // "approver" precisa acompanhar o perfil escolhido aqui — sem isso o
+    // administrador promovido veria os botões, mas sem permissão real.
+    if (data.role === "administrador") {
+      const { error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: data.targetId, role: "approver" }, { onConflict: "user_id,role" });
+      if (roleError) {
+        console.error("[adminDefinirPerfil] user_roles insert", roleError);
+        throw new Error("Não foi possível conceder as permissões de administrador.");
+      }
+    } else {
+      const { error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.targetId)
+        .eq("role", "approver");
+      if (roleError) {
+        console.error("[adminDefinirPerfil] user_roles delete", roleError);
+        throw new Error("Não foi possível remover as permissões de administrador.");
+      }
+    }
     return { ok: true };
   });
+
 
 export const adminExcluirUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -62,6 +86,9 @@ export const adminExcluirUsuario = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertNotProtected(supabaseAdmin, data.targetId);
+
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.targetId);
+
 
     const { error: accessError } = await supabaseAdmin
       .from("user_access")
