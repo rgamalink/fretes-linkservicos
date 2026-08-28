@@ -192,11 +192,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_excluir_usuario: { Args: { target_id: string }; Returns: undefined }
-      admin_set_user_role: {
-        Args: { new_role: string; target_id: string }
-        Returns: undefined
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
