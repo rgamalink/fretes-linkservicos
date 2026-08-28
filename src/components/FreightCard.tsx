@@ -1,4 +1,5 @@
-import { useId, useMemo } from "react";
+import { useId, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import {
   ANTT_COEF,
   PESO,
@@ -12,14 +13,39 @@ import {
   type DadosGerais,
 } from "@/lib/pricing";
 
-function SectionTitle({ children, compacto }: { children: React.ReactNode; compacto?: boolean }) {
+function SectionTitle({
+  children,
+  compacto,
+  recolhivel,
+  recolhido,
+  onToggle,
+}: {
+  children: React.ReactNode;
+  compacto?: boolean;
+  /** Exibe um botão de recolher/expandir ao lado do título. */
+  recolhivel?: boolean;
+  recolhido?: boolean;
+  onToggle?: () => void;
+}) {
   return (
     <div
-      className={`border-b border-line pb-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-accent-dark first:mt-0 ${
+      className={`flex items-center justify-between border-b border-line pb-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-accent-dark first:mt-0 ${
         compacto ? "mt-1.5 mb-0.5" : "mt-2.5 mb-1"
       }`}
     >
-      {children}
+      <span>{children}</span>
+      {recolhivel && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={recolhido ? "Expandir" : "Recolher"}
+          className="text-ink-soft normal-case tracking-normal transition-transform"
+        >
+          <ChevronDown
+            className={`h-3.5 w-3.5 transition-transform ${recolhido ? "" : "rotate-180"}`}
+          />
+        </button>
+      )}
     </div>
   );
 }
@@ -115,6 +141,11 @@ export function FreightCard({
   const coef = ANTT_COEF[gerais.tipo][eixos]!;
   const compact = compacto === true;
 
+  // As três seções abaixo começam recolhidas, mostrando só o essencial.
+  const [anttRecolhido, setAnttRecolhido] = useState(true);
+  const [pedagioRecolhido, setPedagioRecolhido] = useState(true);
+  const [impostosRecolhido, setImpostosRecolhido] = useState(true);
+
   const decidir = (tipo: "Aprovado" | "Reprovado") =>
     onChange({ status: `${tipo} em ${new Date().toLocaleString("pt-BR")}` });
 
@@ -132,24 +163,35 @@ export function FreightCard({
       </div>
 
       <div className={compact ? "px-3.5 pt-2.5 pb-3" : "px-4 pt-3.5 pb-4"}>
-        <SectionTitle compacto={compact}>Tabela ANTT (piso)</SectionTitle>
-        <div
-          className={`text-[10.5px] italic text-ink-soft ${compact ? "my-px mb-1" : "my-0.5 mb-1.5"}`}
+        <SectionTitle
+          compacto={compact}
+          recolhivel
+          recolhido={anttRecolhido}
+          onToggle={() => setAnttRecolhido((v) => !v)}
         >
-          Deslocamento {coef.desloc.toLocaleString("pt-BR", { minimumFractionDigits: 4 })} R$/km ·
-          Carga/Descarga {brl(coef.cd)}
-        </div>
-        <Row
-          compacto={compact}
-          label="Tabela ANTT"
-          value={brl(c.anttR)}
-          sub={`${brl(c.anttTon)}/ton`}
-        />
-        <Row
-          compacto={compact}
-          label="SEST/SENAT + INSS"
-          value={c.sestPct > 0 ? pct(c.sestPct) : "— (PJ)"}
-        />
+          Tabela ANTT (piso)
+        </SectionTitle>
+        {!anttRecolhido && (
+          <>
+            <div
+              className={`text-[10.5px] italic text-ink-soft ${compact ? "my-px mb-1" : "my-0.5 mb-1.5"}`}
+            >
+              Deslocamento {coef.desloc.toLocaleString("pt-BR", { minimumFractionDigits: 4 })} R$/km
+              · Carga/Descarga {brl(coef.cd)}
+            </div>
+            <Row
+              compacto={compact}
+              label="Tabela ANTT"
+              value={brl(c.anttR)}
+              sub={`${brl(c.anttTon)}/ton`}
+            />
+            <Row
+              compacto={compact}
+              label="SEST/SENAT + INSS"
+              value={c.sestPct > 0 ? pct(c.sestPct) : "— (PJ)"}
+            />
+          </>
+        )}
         <Row
           compacto={compact}
           strong
@@ -184,53 +226,75 @@ export function FreightCard({
           }}
         />
 
-        <SectionTitle compacto={compact}>Pedágio</SectionTitle>
+        <SectionTitle
+          compacto={compact}
+          recolhivel
+          recolhido={pedagioRecolhido}
+          onToggle={() => setPedagioRecolhido((v) => !v)}
+        >
+          Pedágio
+        </SectionTitle>
         <InputRow
           compacto={compact}
           label="Pedágio (R$)"
           value={card.pedagio}
           onChange={(v) => onChange({ pedagio: maskMoney(v) })}
         />
-        <Row compacto={compact} label="Pedágio (R$/ton)" value={brl(c.pedagioTon)} />
-        <Row
-          compacto={compact}
-          label="Tabela ANTT + Pedágio"
-          value={brl(c.anttPedR)}
-          sub={`${brl(c.anttPedTon)}/ton`}
-        />
+        {!pedagioRecolhido && (
+          <>
+            <Row compacto={compact} label="Pedágio (R$/ton)" value={brl(c.pedagioTon)} />
+            <Row
+              compacto={compact}
+              label="Tabela ANTT + Pedágio"
+              value={brl(c.anttPedR)}
+              sub={`${brl(c.anttPedTon)}/ton`}
+            />
+          </>
+        )}
 
-        <SectionTitle compacto={compact}>Impostos e Encargos</SectionTitle>
-        <Row
+        <SectionTitle
           compacto={compact}
-          label="ICMS"
-          value={brl(c.icmsR)}
-          sub={`${brl(c.icmsR / peso)}/ton`}
-        />
-        <Row
-          compacto={compact}
-          label="PIS/COFINS"
-          value={brl(c.pisR)}
-          sub={`${brl(c.pisR / peso)}/ton`}
-        />
-        <Row
-          compacto={compact}
-          label="Seguros"
-          value={brl(c.segR)}
-          sub={`${brl(c.segR / peso)}/ton`}
-        />
-        <Row
-          compacto={compact}
-          label="Efrete/Pamcard"
-          value={brl(c.efrR)}
-          sub={`${brl(c.efrR / peso)}/ton`}
-        />
-        <Row
-          compacto={compact}
-          strong
-          label="Saldo Link pós despesas"
-          value={brl(c.saldoR)}
-          sub={`${brl(c.saldoR / peso)}/ton`}
-        />
+          recolhivel
+          recolhido={impostosRecolhido}
+          onToggle={() => setImpostosRecolhido((v) => !v)}
+        >
+          Impostos e Encargos
+        </SectionTitle>
+        {!impostosRecolhido && (
+          <>
+            <Row
+              compacto={compact}
+              label="ICMS"
+              value={brl(c.icmsR)}
+              sub={`${brl(c.icmsR / peso)}/ton`}
+            />
+            <Row
+              compacto={compact}
+              label="PIS/COFINS"
+              value={brl(c.pisR)}
+              sub={`${brl(c.pisR / peso)}/ton`}
+            />
+            <Row
+              compacto={compact}
+              label="Seguros"
+              value={brl(c.segR)}
+              sub={`${brl(c.segR / peso)}/ton`}
+            />
+            <Row
+              compacto={compact}
+              label="Efrete/Pamcard"
+              value={brl(c.efrR)}
+              sub={`${brl(c.efrR / peso)}/ton`}
+            />
+            <Row
+              compacto={compact}
+              strong
+              label="Saldo Link pós despesas"
+              value={brl(c.saldoR)}
+              sub={`${brl(c.saldoR / peso)}/ton`}
+            />
+          </>
+        )}
 
         <SectionTitle compacto={compact}>Frete Motorista</SectionTitle>
         <InputRow
