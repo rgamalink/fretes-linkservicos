@@ -97,12 +97,23 @@ function Panel({
   title,
   children,
   collapsible,
+  aberto: abertoControlado,
+  onAbertoChange,
 }: {
   title: string;
   children: React.ReactNode;
   collapsible?: boolean;
+  /** Estado controlado (opcional). Se omitido, o painel controla seu próprio estado. */
+  aberto?: boolean;
+  onAbertoChange?: (aberto: boolean) => void;
 }) {
-  const [aberto, setAberto] = useState(true);
+  const [abertoInterno, setAbertoInterno] = useState(true);
+  const aberto = abertoControlado ?? abertoInterno;
+  const setAberto = (atualizar: (v: boolean) => boolean) => {
+    const novo = atualizar(aberto);
+    onAbertoChange?.(novo);
+    if (abertoControlado === undefined) setAbertoInterno(novo);
+  };
   return (
     <section className="mt-[22px] rounded-xl border border-line bg-panel px-[22px] py-5">
       <div
@@ -135,6 +146,10 @@ function Index() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [gerais, setGerais] = useState<DadosGerais>(geraisVazio);
+  // Controla se o painel "Dados da Cotação" está aberto. Quando recolhido,
+  // os 4 cards passam para um layout mais compacto (menos espaçamento entre
+  // linhas) para caber lado a lado com zoom de ~90% no navegador.
+  const [dadosCotacaoAberto, setDadosCotacaoAberto] = useState(true);
 
   async function sair() {
     await queryClient.cancelQueries();
@@ -775,7 +790,12 @@ function Index() {
       </div>
 
       <div className="mx-auto max-w-[1440px] px-6 pb-15">
-        <Panel title="Dados da Cotação (aplicam-se aos 4 cards)" collapsible>
+        <Panel
+          title="Dados da Cotação (aplicam-se aos 4 cards)"
+          collapsible
+          aberto={dadosCotacaoAberto}
+          onAbertoChange={setDadosCotacaoAberto}
+        >
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-2.5">
             <div>
               <label className={labelCls}>Nome do Cliente</label>
@@ -1034,13 +1054,25 @@ function Index() {
           </div>
         </Panel>
 
-        <div className="mt-[22px] grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+        {!dadosCotacaoAberto && (
+          <div className="mt-[22px] rounded-[8px] border border-accent/40 bg-accent/10 px-4 py-2.5 text-[12.5px] font-semibold text-accent-dark">
+            Modo compacto ativado: com "Dados da Cotação" recolhido, os 4 cards ficam mais próximos
+            entre si. Para ver todos lado a lado sem rolar a tela, ajuste o zoom do navegador para
+            90% (Ctrl/Cmd + "-").
+          </div>
+        )}
+        <div
+          className={`mt-[22px] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 ${
+            dadosCotacaoAberto ? "gap-[18px]" : "gap-2.5"
+          }`}
+        >
           {EIXOS_LIST.map((eixos) => (
             <FreightCard
               key={eixos}
               eixos={eixos}
               gerais={gerais}
               card={cards[eixos]!}
+              compacto={!dadosCotacaoAberto}
               onChange={(patch) =>
                 setCards((prev) => ({
                   ...prev,
