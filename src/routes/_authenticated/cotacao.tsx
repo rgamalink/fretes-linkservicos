@@ -1588,7 +1588,7 @@ function Index() {
                 <tbody>
                   {usuarios.map((u) => {
                     const { nome, sobrenome } = splitNome(u.full_name);
-                    const fixo = ehEmailFixoAdmin(u.email);
+                    const fixo = contaProtegida(u.email);
                     return (
                       <tr key={u.id} className="hover:bg-secondary">
                         <td className="border-b border-line p-2">{nome}</td>
