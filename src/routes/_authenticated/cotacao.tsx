@@ -289,7 +289,7 @@ function Index() {
 
 
   const [perfilAdmin, setPerfilAdmin] = useState(false);
-  const isApprover = (email ?? "").toLowerCase() === APPROVER_EMAIL || perfilAdmin;
+  const isApprover = perfilAdmin;
 
   useEffect(() => {
     setLista(getCotacoes());
