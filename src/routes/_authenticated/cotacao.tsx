@@ -202,11 +202,12 @@ function Index() {
   const [usuarios, setUsuarios] = useState<UsuarioAcesso[]>([]);
   const usuariosPendentes = usuarios.filter((u) => u.access_status === "pendente").length;
 
-  // rodrigo.gama@linkbr.com é sempre administrador, independentemente do
-  // perfil salvo (mesma regra do backend em private.is_approver()); os
-  // demais usuários seguem o campo role.
-  const ehEmailFixoAdmin = (email: string | null) =>
+  // A conta principal do aprovador não pode ser alterada/excluída (mesma
+  // regra do servidor em assertNotProtected). Isso NÃO define quem é
+  // administrador — isso vem do perfil salvo em profiles.role.
+  const contaProtegida = (email: string | null) =>
     (email ?? "").toLowerCase() === APPROVER_EMAIL;
+
 
   const splitNome = (fullName: string | null) => {
     const partes = (fullName || "").trim().split(/\s+/).filter(Boolean);
