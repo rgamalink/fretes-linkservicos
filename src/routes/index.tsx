@@ -5,7 +5,6 @@ import { Loader2, LockKeyhole } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { notificarNovoCadastro } from "@/lib/notificacoes.functions";
-import logoAsset from "@/assets/logo-link.png.asset.json";
 
 function destinoSeguro(next: unknown): string | null {
   if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//"))
@@ -196,7 +195,7 @@ function LoginPage() {
         }}
       />
       <div className="mx-auto flex min-h-[calc(100vh-10px)] max-w-[520px] flex-col justify-center px-5 py-10">
-        <div className="grid grid-cols-[1fr_140px] overflow-hidden rounded-[10px]">
+        <div className="grid grid-cols-[1fr_200px] overflow-hidden rounded-[10px]">
           <div className="flex flex-col justify-center bg-gradient-to-b from-navy to-navy-2 px-5 py-5">
             <h1 className="text-[17px] font-bold leading-tight tracking-[0.2px] text-primary-foreground">
               Sistema de Precificação de Fretes
@@ -207,9 +206,9 @@ function LoginPage() {
           </div>
           <div className="flex items-center justify-center bg-white px-4 py-5">
             <img
-              src={logoAsset.url}
+              src="/link-group-logo.png"
               alt="Link Group"
-              className="h-9 w-auto object-contain"
+              className="h-7 w-auto max-w-full object-contain"
             />
           </div>
         </div>
