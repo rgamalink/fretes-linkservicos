@@ -31,24 +31,59 @@ export async function submeterAprovacao(
   const user = userData.user;
   if (userError || !user) throw new Error("Sessão expirada. Entre novamente.");
 
-  const { error } = await supabase.from("cotacoes_aprovacao").insert({
-    user_id: user.id,
-    submitted_by_email: user.email ?? null,
-    ref_local: refLocal ?? null,
-    cliente: gerais.cliente ?? "",
-    origem: gerais.origem ?? "",
-    uf_origem: gerais.ufOrigem ?? "",
-    destino: gerais.destino ?? "",
-    uf_destino: gerais.ufDestino ?? "",
-    dados: { gerais, cards } as never,
-    status,
-    ...(status === "pendente"
-      ? {}
-      : { decided_at: new Date().toISOString(), decided_by: user.id }),
-  });
+  const { data: inserted, error } = await supabase
+    .from("cotacoes_aprovacao")
+    .insert({
+      user_id: user.id,
+      submitted_by_email: user.email ?? null,
+      ref_local: refLocal ?? null,
+      cliente: gerais.cliente ?? "",
+      origem: gerais.origem ?? "",
+      uf_origem: gerais.ufOrigem ?? "",
+      destino: gerais.destino ?? "",
+      uf_destino: gerais.ufDestino ?? "",
+      dados: { gerais, cards } as never,
+      status,
+      ...(status === "pendente"
+        ? {}
+        : { decided_at: new Date().toISOString(), decided_by: user.id }),
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+
+  if (status === "pendente") {
+    void notificarAdministradoresCotacaoPendente({
+      id: inserted.id,
+      cliente: gerais.cliente ?? "",
+      origem: gerais.origem ?? "",
+      ufOrigem: gerais.ufOrigem ?? "",
+      destino: gerais.destino ?? "",
+      ufDestino: gerais.ufDestino ?? "",
+      submittedByEmail: user.email ?? null,
+    });
+  }
 }
 
+async function notificarAdministradoresCotacaoPendente(params: {
+  id: string;
+  cliente: string;
+  origem: string;
+  ufOrigem: string;
+  destino: string;
+  ufDestino: string;
+  submittedByEmail: string | null;
+}) {
+  try {
+    const { notificarCotacaoPendente } = await import("@/lib/aprovacoes.functions");
+    await notificarCotacaoPendente({ data: params });
+  } catch (err) {
+    console.error(
+      "[notificarAdministradoresCotacaoPendente] falha ao notificar administradores",
+      err,
+    );
+  }
+}
 
 export async function listarSubmissoes(): Promise<Submissao[]> {
   const { data, error } = await supabase
@@ -78,7 +113,6 @@ export async function listarStatusCotacoes(): Promise<StatusCotacao[]> {
   if (error) throw error;
   return (data ?? []) as StatusCotacao[];
 }
-
 
 /** Apaga uma ou mais submissões (apenas aprovador via RLS). */
 export async function apagarSubmissoes(ids: string[]) {
