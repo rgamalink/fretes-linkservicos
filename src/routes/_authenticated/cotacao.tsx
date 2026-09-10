@@ -1171,7 +1171,7 @@ function Index() {
       </footer>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-[1400px] w-[95vw]">
+        <DialogContent className="w-[98vw] max-w-[98vw]">
           <DialogHeader>
             <DialogTitle>Cotações Salvas</DialogTitle>
           </DialogHeader>
@@ -1245,8 +1245,8 @@ function Index() {
               Nenhuma cotação encontrada.
             </div>
           ) : (
-            <div className="max-h-[50vh] overflow-auto">
-              <table className="w-full min-w-max border-collapse whitespace-nowrap text-[12.5px]">
+            <div className="max-h-[65vh] overflow-y-auto overflow-x-hidden">
+              <table className="w-full table-auto border-collapse text-[12.5px]">
                 <thead>
                   <tr className="text-left text-ink-soft">
                     {!isApprover && <th className="border-b-2 border-line p-2" />}
@@ -1380,7 +1380,7 @@ function Index() {
                         </td>
                         <td className="border-b border-line p-2">
                           {!isApprover && (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               {submetidas[item.id] !== true && (
                                 <button
                                   type="button"
