@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, Trash2, Upload, X } from "lucide-react";
 import {
   decidirAcesso,
   definirPerfil,
@@ -46,7 +46,9 @@ import {
   type DadosGerais,
   type TipoCarga,
 } from "@/lib/pricing";
-import { buscarValorMedioProduto } from "@/lib/valorMercadoria";
+import { aplicarValoresAtualizados, buscarValorMedioProduto, carregarValoresMercadoriaSalvos } from "@/lib/valorMercadoria";
+import { calcularValoresDeArquivo } from "@/lib/valorMercadoriaImport";
+import { atualizarValorMercadoria } from "@/lib/valor-mercadoria.functions";
 import {
   Dialog,
   DialogContent,
@@ -202,6 +204,35 @@ function Index() {
   const [usuarios, setUsuarios] = useState<UsuarioAcesso[]>([]);
   const usuariosPendentes = usuarios.filter((u) => u.access_status === "pendente").length;
 
+  const [atualizandoValorCarga, setAtualizandoValorCarga] = useState(false);
+  const inputValorCargaRef = useRef<HTMLInputElement>(null);
+
+  const atualizarValorCargaArquivo = async (file: File) => {
+    setAtualizandoValorCarga(true);
+    try {
+      const { valores, totalRegistros, totalProdutos } = await calcularValoresDeArquivo(file);
+      const itens = Array.from(valores, ([produto, v]) => ({
+        produto,
+        avg: v.avg,
+        n: v.n,
+        janelaMeses: v.janelaMeses,
+      }));
+      await atualizarValorMercadoria({ data: itens });
+      aplicarValoresAtualizados(
+        Object.fromEntries(itens.map((it) => [it.produto, { avg: it.avg, n: it.n }])),
+      );
+      toast.success(
+        `Valor da carga atualizado: ${totalProdutos} produto(s) recalculado(s) a partir de ${totalRegistros} registro(s).`,
+      );
+    } catch (err) {
+      console.error("Falha ao atualizar valor da carga:", err);
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(detalhe || "Não foi possível atualizar o valor da carga a partir desse arquivo.");
+    } finally {
+      setAtualizandoValorCarga(false);
+    }
+  };
+
   // rodrigo.gama@linkbr.com é sempre administrador, independentemente do
   // perfil salvo (mesma regra do backend em private.is_approver()); os
   // demais usuários seguem o campo role.
@@ -298,6 +329,7 @@ function Index() {
     });
     void carregarSubmissoes();
     void carregarUsuarios();
+    void carregarValoresMercadoriaSalvos();
   }, []);
 
   const carregarSubmissoes = async () => {
@@ -1569,6 +1601,33 @@ function Index() {
           <DialogHeader>
             <DialogTitle>Configuração</DialogTitle>
           </DialogHeader>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <input
+              ref={inputValorCargaRef}
+              type="file"
+              accept=".xlsx,.xls,.xlsm"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void atualizarValorCargaArquivo(file);
+              }}
+            />
+            <button
+              type="button"
+              disabled={atualizandoValorCarga}
+              onClick={() => inputValorCargaRef.current?.click()}
+              className="rounded-[7px] border border-navy bg-panel px-3 py-2 text-[12.5px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Upload className="mr-1.5 inline h-4 w-4 align-[-3px]" />
+              {atualizandoValorCarga ? "Atualizando..." : "Atualizar Valor da Carga"}
+            </button>
+            <span className="text-[12px] text-ink-soft">
+              Envie a planilha atualizada (mesmo formato da base atual) para recalcular a média de
+              valor da mercadoria por produto: últimos 12 meses corridos, ou 18/24 meses se não
+              houver registro no período mais curto (valores zerados ou vazios são ignorados).
+            </span>
+          </div>
           {usuarios.length === 0 ? (
             <p className="text-[13px] text-ink-soft">Nenhum cadastro encontrado.</p>
           ) : (
