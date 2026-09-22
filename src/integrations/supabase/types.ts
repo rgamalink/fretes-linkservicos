@@ -226,6 +226,33 @@ export type Database = {
         }
         Relationships: []
       }
+      valores_mercadoria: {
+        Row: {
+          avg: number
+          janela_meses: number
+          n: number
+          produto: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          avg: number
+          janela_meses: number
+          n: number
+          produto: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          avg?: number
+          janela_meses?: number
+          n?: number
+          produto?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
