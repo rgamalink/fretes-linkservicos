@@ -204,30 +204,3 @@ export type Cotacao = {
   gerais: DadosGerais;
   cards: Record<number, DadosCard>;
 };
-
-const STORAGE_KEY = "linkgroup_cotacoes_v1";
-
-export function getCotacoes(): Cotacao[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Cotacao[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function setCotacoes(lista: Cotacao[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function gerarId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return "cot_" + crypto.randomUUID();
-  }
-  return "cot_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-}

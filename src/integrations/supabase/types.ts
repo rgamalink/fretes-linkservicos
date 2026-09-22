@@ -71,6 +71,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cotacoes_salvas: {
+        Row: {
+          cards: Json
+          cliente: string
+          created_at: string
+          created_by_email: string | null
+          destino: string
+          gerais: Json
+          id: string
+          origem: string
+          salvo_em: string
+          user_id: string
+        }
+        Insert: {
+          cards: Json
+          cliente?: string
+          created_at?: string
+          created_by_email?: string | null
+          destino?: string
+          gerais: Json
+          id?: string
+          origem?: string
+          salvo_em?: string
+          user_id: string
+        }
+        Update: {
+          cards?: Json
+          cliente?: string
+          created_at?: string
+          created_by_email?: string | null
+          destino?: string
+          gerais?: Json
+          id?: string
+          origem?: string
+          salvo_em?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cotacoes_status: {
         Row: {
           cliente: string
