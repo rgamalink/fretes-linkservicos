@@ -1051,6 +1051,11 @@ function Index() {
                   className="rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
                 >
                   <ClipboardList className="mr-2 inline h-4 w-4 align-[-3px]" />Cotações para Aprovação
+                  {pendentes.length > 0 && (
+                    <span className="ml-2 rounded-full bg-danger px-2 py-0.5 text-[11px] text-primary-foreground">
+                      {pendentes.length}
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
