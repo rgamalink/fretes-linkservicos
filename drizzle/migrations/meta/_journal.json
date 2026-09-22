@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790002508270,
+      "tag": "0000_authenticated_users_view_all_cotacoes_aprovacao",
+      "breakpoints": true
+    }
+  ]
+}

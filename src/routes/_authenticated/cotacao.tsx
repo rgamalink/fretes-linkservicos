@@ -24,6 +24,12 @@ import {
   type StatusCotacao,
   type Submissao,
 } from "@/lib/aprovacoes";
+import {
+  apagarCotacaoSalva,
+  atualizarCotacaoSalva,
+  criarCotacaoSalva,
+  listarCotacoesSalvas,
+} from "@/lib/cotacoesSalvas";
 
 import logoAsset from "@/assets/logo-link.png.asset.json";
 import { FreightCard } from "@/components/FreightCard";
@@ -33,14 +39,10 @@ import {
   PESO,
   UFS,
   cardVazio,
-
   cardsVazios,
   formatMoneyValue,
-  gerarId,
   geraisVazio,
-  getCotacoes,
   maskMoney,
-  setCotacoes,
   type Cotacao,
   type DadosCard,
   type DadosGerais,
@@ -233,11 +235,12 @@ function Index() {
     }
   };
 
-  // rodrigo.gama@linkbr.com é sempre administrador, independentemente do
-  // perfil salvo (mesma regra do backend em private.is_approver()); os
-  // demais usuários seguem o campo role.
-  const ehEmailFixoAdmin = (email: string | null) =>
+  // A conta principal do aprovador não pode ser alterada/excluída (mesma
+  // regra do servidor em assertNotProtected). Isso NÃO define quem é
+  // administrador — isso vem do perfil salvo em profiles.role.
+  const contaProtegida = (email: string | null) =>
     (email ?? "").toLowerCase() === APPROVER_EMAIL;
+
 
   const splitNome = (fullName: string | null) => {
     const partes = (fullName || "").trim().split(/\s+/).filter(Boolean);
@@ -319,10 +322,10 @@ function Index() {
 
 
   const [perfilAdmin, setPerfilAdmin] = useState(false);
-  const isApprover = (email ?? "").toLowerCase() === APPROVER_EMAIL || perfilAdmin;
+  const isApprover = perfilAdmin;
 
   useEffect(() => {
-    setLista(getCotacoes());
+    void carregarCotacoesSalvas();
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
       if (data.user?.id) void souAdministrador(data.user.id).then(setPerfilAdmin);
@@ -331,6 +334,15 @@ function Index() {
     void carregarUsuarios();
     void carregarValoresMercadoriaSalvos();
   }, []);
+
+  // Cotações salvas por qualquer usuário; visíveis a todos os perfis.
+  const carregarCotacoesSalvas = async () => {
+    try {
+      setLista(await listarCotacoesSalvas());
+    } catch {
+      toast.error("Não foi possível carregar as cotações salvas.");
+    }
+  };
 
   const carregarSubmissoes = async () => {
     try {
@@ -485,26 +497,29 @@ function Index() {
     });
   };
 
-  // Garante que exista uma cotação com esse id no localStorage deste
-  // navegador (sem sobrescrever se já existir), para que ela apareça em
-  // "Ver Cotações" mesmo quando o aprovador decide direto pela tela
+  // Garante que exista, na lista compartilhada, uma cotação com esse id
+  // (sem sobrescrever se já existir), para que ela apareça em "Ver Cotações"
+  // (para todos os perfis) mesmo quando o aprovador decide direto pela tela
   // "Cotações para Aprovação", sem nunca ter salvo essa cotação antes.
-  const garantirCotacaoLocalComId = (
+  const garantirCotacaoLocalComId = async (
     id: string,
-    salvoEm: string,
+    _salvoEm: string,
     g: DadosGerais,
     c: Record<number, DadosCard>,
   ) => {
-    if (getCotacoes().some((x) => x.id === id)) return;
-    const nova: Cotacao = { id, salvoEm, gerais: g, cards: c };
-    const atual = [nova, ...getCotacoes()];
-    if (setCotacoes(atual)) setLista(atual);
+    if (lista.some((x) => x.id === id)) return;
+    try {
+      await criarCotacaoSalva(g, c, id);
+      await carregarCotacoesSalvas();
+    } catch {
+      /* falha silenciosa ao registrar a cópia da cotação decidida */
+    }
   };
 
-  const garantirCotacaoLocal = (s: Submissao) => {
+  const garantirCotacaoLocal = async (s: Submissao) => {
     const dados = s.dados as { gerais?: DadosGerais; cards?: Record<number, DadosCard> } | null;
     if (!dados?.gerais) return;
-    garantirCotacaoLocalComId(
+    await garantirCotacaoLocalComId(
       s.ref_local ?? s.id,
       s.created_at,
       dados.gerais,
@@ -522,7 +537,7 @@ function Index() {
         [s.id]: status,
         ...(s.ref_local ? { [s.ref_local]: status } : {}),
       }));
-      garantirCotacaoLocal(s);
+      await garantirCotacaoLocal(s);
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
     } catch (err) {
@@ -557,7 +572,7 @@ function Index() {
         await submeterAprovacao(g, c, status, cotacaoId);
       }
       setDecisaoUI((prev) => ({ ...prev, [cotacaoId]: status }));
-      garantirCotacaoLocalComId(cotacaoId, new Date().toISOString(), g, c);
+      await garantirCotacaoLocalComId(cotacaoId, new Date().toISOString(), g, c);
       toast.success(status === "aprovada" ? "Cotação aprovada." : "Cotação reprovada.");
       await carregarSubmissoes();
     } catch (err) {
@@ -580,71 +595,60 @@ function Index() {
     setGerais((prev) => ({ ...prev, ...patch }));
 
   /** Salva a cotação e devolve o id gerado (referência única da cotação). */
-  const salvarCotacao = (g: DadosGerais, c: Record<number, DadosCard>) => {
-    const nova: Cotacao = {
-      id: gerarId(),
-      salvoEm: new Date().toISOString(),
-      gerais: g,
-      cards: c,
-    };
-    const atual = [nova, ...getCotacoes()];
-    if (setCotacoes(atual)) {
-      setLista(atual);
+  const salvarCotacao = async (
+    g: DadosGerais,
+    c: Record<number, DadosCard>,
+  ): Promise<string | null> => {
+    try {
+      const nova = await criarCotacaoSalva(g, c);
+      await carregarCotacoesSalvas();
       setCotacaoAtualId(nova.id);
       return nova.id;
+    } catch {
+      return null;
     }
-    return null;
   };
 
-
   /** Sobrescreve uma cotação já salva (mesmo id), em vez de criar uma nova. */
-  const sobrescreverCotacao = (id: string, g: DadosGerais, c: Record<number, DadosCard>) => {
-    const atual = getCotacoes().map((x) =>
-      x.id === id ? { ...x, gerais: g, cards: c, salvoEm: new Date().toISOString() } : x,
-    );
-    if (setCotacoes(atual)) {
-      setLista(atual);
+  const sobrescreverCotacao = async (id: string, g: DadosGerais, c: Record<number, DadosCard>) => {
+    try {
+      await atualizarCotacaoSalva(id, g, c);
+      await carregarCotacoesSalvas();
       toast.success("Cotação atualizada com sucesso.");
-    } else {
+    } catch {
       toast.error("Não foi possível atualizar a cotação.");
     }
   };
 
-  const salvar = () => {
+  const salvar = async () => {
     if (!gerais.cliente.trim()) {
       toast.warning("Informe o Nome do Cliente antes de salvar.");
       return;
     }
     // Administrador editando uma cotação já carregada: pergunta antes de
     // sobrepor, em vez de sempre criar uma cotação nova.
-    const existente = cotacaoAtualId ? getCotacoes().find((x) => x.id === cotacaoAtualId) : null;
+    const existente = cotacaoAtualId ? lista.find((x) => x.id === cotacaoAtualId) : null;
     if (isApprover && existente) {
       setConfirm({
         msg: "Já existe uma cotação salva com essas informações. Deseja sobrepor a alteração salva anteriormente?",
-        action: () => sobrescreverCotacao(existente.id, gerais, cards),
+        action: () => void sobrescreverCotacao(existente.id, gerais, cards),
       });
       return;
     }
-    if (salvarCotacao(gerais, cards)) {
+    if (await salvarCotacao(gerais, cards)) {
       toast.success("Cotação salva com sucesso.");
     } else {
-      toast.error("Não foi possível salvar (armazenamento indisponível).");
+      toast.error("Não foi possível salvar a cotação.");
     }
   };
 
   /** Cria uma cópia independente da cotação, com novo id. */
-  const duplicar = (c: Cotacao) => {
-    const nova: Cotacao = {
-      id: gerarId(),
-      salvoEm: new Date().toISOString(),
-      gerais: { ...c.gerais },
-      cards: { ...c.cards },
-    };
-    const atual = [nova, ...getCotacoes()];
-    if (setCotacoes(atual)) {
-      setLista(atual);
+  const duplicar = async (c: Cotacao) => {
+    try {
+      await criarCotacaoSalva(c.gerais, c.cards);
+      await carregarCotacoesSalvas();
       toast.success("Cotação duplicada.");
-    } else {
+    } catch {
       toast.error("Não foi possível duplicar a cotação.");
     }
   };
@@ -695,13 +699,15 @@ function Index() {
     setConfirm({
       msg: `Tem certeza que deseja apagar a cotação de "${c.gerais.cliente || "esta cotação"}"? Essa ação não pode ser desfeita.`,
       action: () => {
-        const atual = getCotacoes().filter((x) => x.id !== c.id);
-        if (setCotacoes(atual)) {
-          setLista(atual);
-          toast.success("Cotação apagada.");
-        } else {
-          toast.error("Não foi possível apagar a cotação.");
-        }
+        void (async () => {
+          try {
+            await apagarCotacaoSalva(c.id);
+            await carregarCotacoesSalvas();
+            toast.success("Cotação apagada.");
+          } catch {
+            toast.error("Não foi possível apagar a cotação.");
+          }
+        })();
       },
     });
 
@@ -1004,16 +1010,16 @@ function Index() {
                 isApprover &&
                 idAtual !== null &&
                 (decisaoUI[idAtual] ?? statusPorCotacao[idAtual]) === "aprovada";
-              const acao = () => {
+              const acao = async () => {
                 if (!gerais.cliente.trim()) {
                   toast.warning("Informe o Nome do Cliente antes de continuar.");
                   return;
                 }
                 // Cada cotação precisa de um id próprio: se ainda não foi salva,
                 // salva agora para gerar a referência.
-                const id = idAtual ?? salvarCotacao(gerais, cards);
+                const id = idAtual ?? (await salvarCotacao(gerais, cards));
                 if (!id) {
-                  toast.error("Não foi possível salvar a cotação (armazenamento indisponível).");
+                  toast.error("Não foi possível salvar a cotação.");
                   return;
                 }
                 void (isApprover
@@ -1051,10 +1057,10 @@ function Index() {
                 <button
                   type="button"
                   disabled={enviando}
-                  onClick={() => {
-                    const id = idAtual ?? salvarCotacao(gerais, cards);
+                  onClick={async () => {
+                    const id = idAtual ?? (await salvarCotacao(gerais, cards));
                     if (!id) {
-                      toast.error("Não foi possível salvar a cotação (armazenamento indisponível).");
+                      toast.error("Não foi possível salvar a cotação.");
                       return;
                     }
                     void decidirLocal(gerais, cards, "reprovada", id);
@@ -1077,6 +1083,11 @@ function Index() {
                   className="rounded-[7px] border border-navy bg-panel px-4 py-2.5 text-[13px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
                 >
                   <ClipboardList className="mr-2 inline h-4 w-4 align-[-3px]" />Cotações para Aprovação
+                  {pendentes.length > 0 && (
+                    <span className="ml-2 rounded-full bg-danger px-2 py-0.5 text-[11px] text-primary-foreground">
+                      {pendentes.length}
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -1202,7 +1213,7 @@ function Index() {
       </footer>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-[1400px] w-[95vw]">
+        <DialogContent className="w-[98vw] max-w-[98vw]">
           <DialogHeader>
             <DialogTitle>Cotações Salvas</DialogTitle>
           </DialogHeader>
@@ -1276,8 +1287,8 @@ function Index() {
               Nenhuma cotação encontrada.
             </div>
           ) : (
-            <div className="max-h-[50vh] overflow-auto">
-              <table className="w-full min-w-max border-collapse whitespace-nowrap text-[12.5px]">
+            <div className="max-h-[65vh] overflow-y-auto overflow-x-hidden">
+              <table className="w-full table-auto border-collapse text-[12.5px]">
                 <thead>
                   <tr className="text-left text-ink-soft">
                     {!isApprover && <th className="border-b-2 border-line p-2" />}
@@ -1411,7 +1422,7 @@ function Index() {
                         </td>
                         <td className="border-b border-line p-2">
                           {!isApprover && (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               {submetidas[item.id] !== true && (
                                 <button
                                   type="button"
@@ -1646,7 +1657,7 @@ function Index() {
                 <tbody>
                   {usuarios.map((u) => {
                     const { nome, sobrenome } = splitNome(u.full_name);
-                    const fixo = ehEmailFixoAdmin(u.email);
+                    const fixo = contaProtegida(u.email);
                     return (
                       <tr key={u.id} className="hover:bg-secondary">
                         <td className="border-b border-line p-2">{nome}</td>
