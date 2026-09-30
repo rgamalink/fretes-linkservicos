@@ -195,14 +195,15 @@ export function calcular(eixos: number, gerais: DadosGerais, card: DadosCard) {
   const fmR = fmTon * peso;
 
   const icmsR = freR * icmsPct;
-  const segR = valorCarga * peso * 0.00022;
+  // Seguro = (Valor da Carga (R$/ton) × Peso do eixo (ton) × 0,011%) × 2 —
+  // aplicado sobre o valor total da carga transportada nesse veículo.
+  const segR = valorCarga * peso * 0.00011 * 2;
 
-  const efrR =
-    gerais.ufOrigem === "MG"
-      ? fmR * 0.0032 + pedagioR * 0.005
-      : fmR * 0.007;
+  // Efrete/Pamcard = 0,32% do Frete Motorista + 0,50% do Pedágio, igual em
+  // qualquer UF de origem.
+  const efrR = fmR * 0.0032 + pedagioR * 0.005;
 
-  const pisR = (freR - pedagioR - fmR - icmsR - segR - efrR) * 0.0925;
+  const pisR = (freR - fmR - efrR - segR - icmsR) * 0.0925;
   const saldoR = freR - icmsR - pisR - segR - efrR;
   const fmpR = fmR + pedagioR;
 

@@ -1253,8 +1253,16 @@ function Index() {
                 separado em outro campo.
               </li>
               <li>
-                <b>Efrete/Pamcard</b> usa a UF de Origem: se MG, Frete Motorista×0,32% +
-                Pedágio×0,50%; nas demais UFs, Frete Motorista×0,70%.
+                <b>Efrete/Pamcard</b> = Frete Motorista×0,32% + Pedágio×0,50%, igual em
+                qualquer UF de Origem.
+              </li>
+              <li>
+                <b>Seguro</b> = (Valor da Carga (R$/ton) × Peso do eixo × 0,011%) × 2 —
+                ou seja, 0,022% sobre o valor total da carga transportada.
+              </li>
+              <li>
+                <b>PIS/COFINS</b> = (Frete Empresa − Frete Motorista − Efrete/Pamcard −
+                Seguro − ICMS) × 9,25%.
               </li>
               <li>
                 <b>Margem Operacional (%)</b> = Margem (R$/ton) ÷ Frete Empresa (R$/ton).
