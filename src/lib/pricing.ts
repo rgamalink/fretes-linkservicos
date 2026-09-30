@@ -1,9 +1,11 @@
-export const PESO: Record<number, number> = { 5: 26, 6: 30, 7: 39, 9: 48 };
+import { supabase } from "@/integrations/supabase/client";
+
+export const PESO_BASELINE: Record<number, number> = { 5: 26, 6: 30, 7: 39, 9: 48 };
 export const EIXOS_LIST = [5, 6, 7, 9] as const;
 
 export type TipoCarga = "granel" | "geral" | "container";
 
-export const ANTT_COEF: Record<
+export const ANTT_COEF_BASELINE: Record<
   TipoCarga,
   { label: string } & Record<number, { desloc: number; cd: number }>
 > = {
@@ -29,6 +31,45 @@ export const ANTT_COEF: Record<
     9: { desloc: 9.1399, cd: 886.05 },
   },
 };
+
+// PESO e ANTT_COEF começam iguais aos valores de partida (baseline) acima e
+// são reatribuídos (o objeto inteiro, não mutado campo a campo) assim que um
+// administrador salva uma edição em "Atualizar Índices ANTT" ou quando
+// carregarAnttCoeficientesSalvos() traz o que já foi salvo antes. Como todo
+// módulo que importa PESO/ANTT_COEF lê o valor atual do binding a cada
+// chamada de função (nunca guarda uma cópia), a reatribuição aqui já basta
+// para propagar — não precisa de um deploy novo.
+export let PESO: Record<number, number> = { ...PESO_BASELINE };
+export let ANTT_COEF: Record<
+  TipoCarga,
+  { label: string } & Record<number, { desloc: number; cd: number }>
+> = structuredClone(ANTT_COEF_BASELINE);
+
+export interface AnttCoeficientesEditaveis {
+  peso: Record<number, number>;
+  coef: Record<TipoCarga, Record<number, { desloc: number; cd: number }>>;
+}
+
+/** Aplica por cima do baseline os índices ANTT editados por um administrador. */
+export function aplicarAnttCoeficientesAtualizados(dados: AnttCoeficientesEditaveis) {
+  PESO = { ...dados.peso };
+  ANTT_COEF = {
+    granel: { label: ANTT_COEF_BASELINE.granel.label, ...dados.coef.granel },
+    geral: { label: ANTT_COEF_BASELINE.geral.label, ...dados.coef.geral },
+    container: { label: ANTT_COEF_BASELINE.container.label, ...dados.coef.container },
+  };
+}
+
+/** Busca na tabela antt_coeficientes o que já foi salvo por uma edição anterior. */
+export async function carregarAnttCoeficientesSalvos(): Promise<void> {
+  const { data, error } = await supabase
+    .from("antt_coeficientes")
+    .select("dados")
+    .eq("id", "default")
+    .maybeSingle();
+  if (error || !data?.dados) return;
+  aplicarAnttCoeficientesAtualizados(data.dados as unknown as AnttCoeficientesEditaveis);
+}
 
 export const UFS = [
   "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB",

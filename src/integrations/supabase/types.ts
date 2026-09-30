@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      antt_coeficientes: {
+        Row: {
+          dados: Json
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          dados: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          dados?: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cotacoes_aprovacao: {
         Row: {
           cliente: string
