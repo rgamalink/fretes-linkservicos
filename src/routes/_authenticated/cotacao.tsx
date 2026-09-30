@@ -1257,8 +1257,9 @@ function Index() {
                 qualquer UF de Origem.
               </li>
               <li>
-                <b>Seguro</b> = (Valor da Carga (R$/ton) × Peso do eixo × 0,011%) × 2 —
-                ou seja, 0,022% sobre o valor total da carga transportada.
+                <b>Seguro</b> = (Valor da Carga (R$/ton) × 0,011%) × 2, ou seja, 0,022% do
+                Valor da Carga — sem multiplicar pelo peso do eixo (o R$/ton exibido no card
+                é esse total dividido pelo peso).
               </li>
               <li>
                 <b>PIS/COFINS</b> = (Frete Empresa − Frete Motorista − Efrete/Pamcard −
