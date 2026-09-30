@@ -26,9 +26,9 @@ import {
 } from "@/lib/aprovacoes";
 import {
   apagarCotacaoSalva,
-  atualizarCotacaoSalva,
   criarCotacaoSalva,
   listarCotacoesSalvas,
+  salvarOuAtualizarCotacaoSalva,
 } from "@/lib/cotacoesSalvas";
 
 import logoAsset from "@/assets/logo-link.png.asset.json";
@@ -712,14 +712,16 @@ function Index() {
     }
   };
 
-  /** Sobrescreve uma cotação já salva (mesmo id), em vez de criar uma nova. */
+  /** Sobrescreve uma cotação já salva (mesmo id); cria se ainda não existir. */
   const sobrescreverCotacao = async (id: string, g: DadosGerais, c: Record<number, DadosCard>) => {
     try {
-      await atualizarCotacaoSalva(id, g, c);
+      const { criada } = await salvarOuAtualizarCotacaoSalva(id, g, c);
       await carregarCotacoesSalvas();
-      toast.success("Cotação atualizada com sucesso.");
-    } catch {
-      toast.error("Não foi possível atualizar a cotação.");
+      toast.success(criada ? "Cotação salva com sucesso." : "Cotação atualizada com sucesso.");
+    } catch (err) {
+      console.error("Falha ao atualizar cotação salva:", err);
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(detalhe ? `Não foi possível atualizar a cotação: ${detalhe}` : "Não foi possível atualizar a cotação.");
     }
   };
 
@@ -729,12 +731,14 @@ function Index() {
       return;
     }
     // Administrador editando uma cotação já carregada: pergunta antes de
-    // sobrepor, em vez de sempre criar uma cotação nova.
-    const existente = cotacaoAtualId ? lista.find((x) => x.id === cotacaoAtualId) : null;
-    if (isApprover && existente) {
+    // sobrepor, em vez de sempre criar uma cotação nova. A decisão de
+    // atualizar x criar é sempre confirmada no servidor (não depende da
+    // lista já carregada no navegador, que pode estar desatualizada).
+    if (isApprover && cotacaoAtualId) {
+      const id = cotacaoAtualId;
       setConfirm({
         msg: "Já existe uma cotação salva com essas informações. Deseja sobrepor a alteração salva anteriormente?",
-        action: () => void sobrescreverCotacao(existente.id, gerais, cards),
+        action: () => void sobrescreverCotacao(id, gerais, cards),
       });
       return;
     }
