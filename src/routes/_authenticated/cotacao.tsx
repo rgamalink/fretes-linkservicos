@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
 import {
   decidirAcesso,
   definirPerfil,
@@ -35,6 +35,8 @@ import logoAsset from "@/assets/logo-link.png.asset.json";
 import { FreightCard } from "@/components/FreightCard";
 import {
   ANTT_COEF,
+  aplicarAnttCoeficientesAtualizados,
+  carregarAnttCoeficientesSalvos,
   EIXOS_LIST,
   PESO,
   UFS,
@@ -51,6 +53,7 @@ import {
 import { aplicarValoresAtualizados, buscarValorMedioProduto, carregarValoresMercadoriaSalvos } from "@/lib/valorMercadoria";
 import { calcularValoresDeArquivo } from "@/lib/valorMercadoriaImport";
 import { atualizarValorMercadoria } from "@/lib/valor-mercadoria.functions";
+import { atualizarAnttCoeficientes } from "@/lib/antt-coeficientes.functions";
 import {
   Dialog,
   DialogContent,
@@ -235,6 +238,105 @@ function Index() {
     }
   };
 
+  // Reflete no painel "Coeficientes ANTT usados no cálculo" (mais abaixo na
+  // página) uma edição salva em "Atualizar Índices ANTT": PESO/ANTT_COEF são
+  // reatribuídos em src/lib/pricing.ts (não é estado React), então esse
+  // painel só redesenha com os novos números quando o componente re-render­
+  // izar por algum outro motivo — este contador força esse re-render.
+  const [, forcarRerender] = useReducer((x: number) => x + 1, 0);
+
+  type AnttForm = {
+    peso: Record<number, string>;
+    coef: Record<TipoCarga, Record<number, { desloc: string; cd: string }>>;
+  };
+
+  const construirAnttForm = (): AnttForm => ({
+    peso: Object.fromEntries(EIXOS_LIST.map((e) => [e, String(PESO[e])])),
+    coef: Object.fromEntries(
+      (Object.keys(ANTT_COEF) as TipoCarga[]).map((tipo) => [
+        tipo,
+        Object.fromEntries(
+          EIXOS_LIST.map((e) => [
+            e,
+            { desloc: String(ANTT_COEF[tipo][e]!.desloc), cd: String(ANTT_COEF[tipo][e]!.cd) },
+          ]),
+        ),
+      ]),
+    ) as AnttForm["coef"],
+  });
+
+  const [anttModalOpen, setAnttModalOpen] = useState(false);
+  const [anttForm, setAnttForm] = useState<AnttForm | null>(null);
+  const [salvandoAntt, setSalvandoAntt] = useState(false);
+
+  const abrirModalAntt = () => {
+    setAnttForm(construirAnttForm());
+    setAnttModalOpen(true);
+  };
+
+  const setPesoForm = (eixo: number, valor: string) =>
+    setAnttForm((prev) => (prev ? { ...prev, peso: { ...prev.peso, [eixo]: valor } } : prev));
+
+  const setCoefForm = (tipo: TipoCarga, eixo: number, campo: "desloc" | "cd", valor: string) =>
+    setAnttForm((prev) =>
+      prev
+        ? {
+            ...prev,
+            coef: {
+              ...prev.coef,
+              [tipo]: { ...prev.coef[tipo], [eixo]: { ...prev.coef[tipo][eixo], [campo]: valor } },
+            },
+          }
+        : prev,
+    );
+
+  const numeroForm = (valor: string) => {
+    const n = Number(valor.trim().replace(",", "."));
+    return Number.isFinite(n) ? n : NaN;
+  };
+
+  const salvarAntt = async () => {
+    if (!anttForm) return;
+    const peso: Record<number, number> = {};
+    for (const eixo of EIXOS_LIST) {
+      const v = numeroForm(anttForm.peso[eixo] ?? "");
+      if (!(v > 0)) {
+        toast.warning(`Peso inválido para o eixo ${eixo}.`);
+        return;
+      }
+      peso[eixo] = v;
+    }
+    const coef = {} as Record<TipoCarga, Record<number, { desloc: number; cd: number }>>;
+    for (const tipo of Object.keys(anttForm.coef) as TipoCarga[]) {
+      coef[tipo] = {};
+      for (const eixo of EIXOS_LIST) {
+        const campo = anttForm.coef[tipo][eixo]!;
+        const desloc = numeroForm(campo.desloc);
+        const cd = numeroForm(campo.cd);
+        if (!(desloc > 0) || !(cd > 0)) {
+          toast.warning(`Valor inválido em "${ANTT_COEF[tipo].label}", eixo ${eixo}.`);
+          return;
+        }
+        coef[tipo][eixo] = { desloc, cd };
+      }
+    }
+
+    setSalvandoAntt(true);
+    try {
+      await atualizarAnttCoeficientes({ data: { peso, coef } });
+      aplicarAnttCoeficientesAtualizados({ peso, coef });
+      forcarRerender();
+      toast.success("Índices ANTT atualizados.");
+      setAnttModalOpen(false);
+    } catch (err) {
+      console.error("Falha ao salvar índices ANTT:", err);
+      const detalhe = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : null;
+      toast.error(detalhe || "Não foi possível salvar os índices ANTT.");
+    } finally {
+      setSalvandoAntt(false);
+    }
+  };
+
   // A conta principal do aprovador não pode ser alterada/excluída (mesma
   // regra do servidor em assertNotProtected). Isso NÃO define quem é
   // administrador — isso vem do perfil salvo em profiles.role.
@@ -333,6 +435,7 @@ function Index() {
     void carregarSubmissoes();
     void carregarUsuarios();
     void carregarValoresMercadoriaSalvos();
+    void carregarAnttCoeficientesSalvos().then(() => forcarRerender());
   }, []);
 
   // Cotações salvas por qualquer usuário; visíveis a todos os perfis.
@@ -1639,6 +1742,20 @@ function Index() {
               houver registro no período mais curto (valores zerados ou vazios são ignorados).
             </span>
           </div>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={abrirModalAntt}
+              className="rounded-[7px] border border-navy bg-panel px-3 py-2 text-[12.5px] font-bold text-navy transition-colors hover:bg-navy hover:text-primary-foreground"
+            >
+              <SlidersHorizontal className="mr-1.5 inline h-4 w-4 align-[-3px]" />
+              Atualizar Índices ANTT
+            </button>
+            <span className="text-[12px] text-ink-soft">
+              Edite o peso (ton), o deslocamento (R$/km) e a carga e descarga (R$) usados no piso
+              ANTT, para os três tipos de carga (Granel Sólido, Carga Geral e Container).
+            </span>
+          </div>
           {usuarios.length === 0 ? (
             <p className="text-[13px] text-ink-soft">Nenhum cadastro encontrado.</p>
           ) : (
@@ -1727,6 +1844,89 @@ function Index() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={anttModalOpen} onOpenChange={setAnttModalOpen}>
+        <DialogContent className="max-w-[1150px] w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Atualizar Índices ANTT</DialogTitle>
+          </DialogHeader>
+          {anttForm && (
+            <>
+              <div className="max-h-[65vh] overflow-auto">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4">
+                  {(Object.keys(anttForm.coef) as TipoCarga[]).map((tipo) => (
+                    <div key={tipo}>
+                      <div className="mb-1.5 text-[13px] font-bold">{ANTT_COEF[tipo].label}</div>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="text-left text-ink-soft">
+                            <th className="px-2 py-1">Eixos</th>
+                            <th className="px-2 py-1">Peso (ton)</th>
+                            <th className="px-2 py-1 text-right">Deslocamento (R$/km)</th>
+                            <th className="px-2 py-1 text-right">Carga e Descarga (R$)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {EIXOS_LIST.map((ei) => (
+                            <tr key={ei}>
+                              <td className="border-b border-line px-2 py-1">{ei}</td>
+                              <td className="border-b border-line px-2 py-1">
+                                <input
+                                  inputMode="decimal"
+                                  className="w-16 rounded-[5px] border border-line bg-panel px-1.5 py-1 text-xs"
+                                  value={anttForm.peso[ei] ?? ""}
+                                  onChange={(e) => setPesoForm(ei, e.target.value)}
+                                />
+                              </td>
+                              <td className="border-b border-line px-2 py-1 text-right">
+                                <input
+                                  inputMode="decimal"
+                                  className="w-24 rounded-[5px] border border-line bg-panel px-1.5 py-1 text-right text-xs"
+                                  value={anttForm.coef[tipo][ei]?.desloc ?? ""}
+                                  onChange={(e) => setCoefForm(tipo, ei, "desloc", e.target.value)}
+                                />
+                              </td>
+                              <td className="border-b border-line px-2 py-1 text-right">
+                                <input
+                                  inputMode="decimal"
+                                  className="w-24 rounded-[5px] border border-line bg-panel px-1.5 py-1 text-right text-xs"
+                                  value={anttForm.coef[tipo][ei]?.cd ?? ""}
+                                  onChange={(e) => setCoefForm(tipo, ei, "cd", e.target.value)}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-1 text-[12px] text-ink-soft">
+                O peso (ton) é compartilhado entre os três tipos de carga — editar em uma tabela
+                atualiza as outras duas.
+              </p>
+              <div className="mt-3 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setAnttModalOpen(false)}
+                  className="rounded-[7px] border border-line bg-panel px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:bg-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={salvandoAntt}
+                  onClick={() => void salvarAntt()}
+                  className="rounded-[7px] border border-navy bg-navy px-4 py-2.5 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-navy-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Save className="mr-2 inline h-4 w-4 align-[-3px]" />
+                  {salvandoAntt ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={confirm !== null}
