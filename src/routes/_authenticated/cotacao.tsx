@@ -191,6 +191,7 @@ function Index() {
   const [cotacaoAtualId, setCotacaoAtualId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [icmsTabelaOpen, setIcmsTabelaOpen] = useState(false);
+  const [icmsZoom, setIcmsZoom] = useState(1);
   const [confirm, setConfirm] = useState<{
     msg: string;
     action: () => void;
@@ -1339,16 +1340,30 @@ function Index() {
         conferidos periodicamente contra a portaria SUROC vigente.
       </footer>
 
-      <Dialog open={icmsTabelaOpen} onOpenChange={setIcmsTabelaOpen}>
-        <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-[1100px] flex-col overflow-hidden">
+      <Dialog
+        open={icmsTabelaOpen}
+        onOpenChange={(open) => {
+          setIcmsTabelaOpen(open);
+          if (!open) setIcmsZoom(1);
+        }}
+      >
+        <DialogContent className="flex max-h-[96vh] w-[98vw] max-w-[1300px] flex-col gap-2 overflow-hidden p-3">
           <DialogHeader>
             <DialogTitle>Tabela ICMS 2026</DialogTitle>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div
+            className="min-h-0 flex-1 overflow-auto"
+            onWheel={(e) => {
+              e.preventDefault();
+              setIcmsZoom((z) => Math.min(4, Math.max(1, z + (e.deltaY < 0 ? 0.15 : -0.15))));
+            }}
+          >
             <img
               src="/tabela-icms-2026.webp"
               alt="Tabela ICMS 2026 por UF de origem e destino"
-              className="mx-auto max-h-[78vh] w-auto max-w-full rounded-lg object-contain"
+              style={{ transform: `scale(${icmsZoom})`, transformOrigin: "top center" }}
+              className="mx-auto max-h-[88vh] w-auto max-w-full select-none rounded-lg object-contain transition-transform duration-100"
+              draggable={false}
             />
           </div>
         </DialogContent>
