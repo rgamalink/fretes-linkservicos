@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Copy, LogOut, Plus, Save, Send, Settings, SlidersHorizontal, Table2, Trash2, Upload, X } from "lucide-react";
 import {
   decidirAcesso,
   definirPerfil,
@@ -190,6 +190,7 @@ function Index() {
   // Id (referência única) da cotação atualmente aberta no painel principal
   const [cotacaoAtualId, setCotacaoAtualId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [icmsTabelaOpen, setIcmsTabelaOpen] = useState(false);
   const [confirm, setConfirm] = useState<{
     msg: string;
     action: () => void;
@@ -1076,7 +1077,17 @@ function Index() {
               </select>
             </div>
             <div>
-              <label className={labelCls}>ICMS (%)</label>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <label className="block text-xs font-semibold text-ink-soft">ICMS (%)</label>
+                <button
+                  type="button"
+                  onClick={() => setIcmsTabelaOpen(true)}
+                  className="rounded-[5px] border border-line px-2 py-0.5 text-[10.5px] font-bold text-navy transition-colors hover:bg-secondary"
+                >
+                  <Table2 className="mr-1 inline h-3 w-3 align-[-1px]" />
+                  Tabela ICMS
+                </button>
+              </div>
               <input
                 inputMode="decimal"
                 placeholder="0,00"
@@ -1327,6 +1338,19 @@ function Index() {
         Sistema gerado para uso interno. Os coeficientes de piso ANTT devem ser
         conferidos periodicamente contra a portaria SUROC vigente.
       </footer>
+
+      <Dialog open={icmsTabelaOpen} onOpenChange={setIcmsTabelaOpen}>
+        <DialogContent className="w-[95vw] max-w-[1100px]">
+          <DialogHeader>
+            <DialogTitle>Tabela ICMS 2026</DialogTitle>
+          </DialogHeader>
+          <img
+            src="/tabela-icms-2026.webp"
+            alt="Tabela ICMS 2026 por UF de origem e destino"
+            className="w-full rounded-lg"
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="w-[98vw] max-w-[98vw]">
