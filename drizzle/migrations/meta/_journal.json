@@ -8,6 +8,13 @@
       "when": 1790002508270,
       "tag": "0000_authenticated_users_view_all_cotacoes_aprovacao",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790964487787,
+      "tag": "0001_replace_tautological_authenticated_select_policies",
+      "breakpoints": true
     }
   ]
 }
