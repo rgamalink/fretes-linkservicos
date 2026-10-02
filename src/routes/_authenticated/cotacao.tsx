@@ -1340,15 +1340,17 @@ function Index() {
       </footer>
 
       <Dialog open={icmsTabelaOpen} onOpenChange={setIcmsTabelaOpen}>
-        <DialogContent className="w-[95vw] max-w-[1100px]">
+        <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-[1100px] flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Tabela ICMS 2026</DialogTitle>
           </DialogHeader>
-          <img
-            src="/tabela-icms-2026.webp"
-            alt="Tabela ICMS 2026 por UF de origem e destino"
-            className="w-full rounded-lg"
-          />
+          <div className="min-h-0 flex-1 overflow-auto">
+            <img
+              src="/tabela-icms-2026.webp"
+              alt="Tabela ICMS 2026 por UF de origem e destino"
+              className="mx-auto max-h-[78vh] w-auto max-w-full rounded-lg object-contain"
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
