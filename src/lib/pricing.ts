@@ -128,6 +128,7 @@ export type DadosGerais = {
   valorCarga: string;
   pfpj: "PF" | "PJ";
   icms: string;
+  retornoVazio: boolean;
 };
 
 export type DadosCard = {
@@ -152,6 +153,7 @@ export const geraisVazio = (): DadosGerais => ({
   valorCarga: "",
   pfpj: "PF",
   icms: "",
+  retornoVazio: false,
 });
 
 export const hojeISO = () => {
@@ -183,7 +185,9 @@ export function calcular(eixos: number, gerais: DadosGerais, card: DadosCard) {
   const valorCarga = parseMoney(gerais.valorCarga);
   const icmsPct = parseMoney(gerais.icms) / 100;
 
-  const anttR = distancia > 0 ? distancia * coef.desloc + coef.cd : 0;
+  const anttBaseR = distancia > 0 ? distancia * coef.desloc + coef.cd : 0;
+  const retornoVazio = gerais.tipo === "container" && gerais.retornoVazio;
+  const anttR = retornoVazio ? anttBaseR + distancia * coef.desloc * 0.92 : anttBaseR;
   const anttMotR = distancia > 0 ? anttR / (1 - sestPct) : 0;
 
   const freR = parseMoney(card.freteEmpresaR);
