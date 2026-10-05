@@ -1466,8 +1466,8 @@ function Index() {
               Nenhuma cotação encontrada.
             </div>
           ) : (
-            <div className="max-h-[65vh] overflow-y-auto overflow-x-hidden">
-              <table className="w-full table-auto border-collapse text-[12.5px]">
+            <div className="max-h-[65vh] overflow-auto">
+              <table className="w-max min-w-full table-auto border-collapse whitespace-nowrap text-[12.5px]">
                 <thead>
                   <tr className="text-left text-ink-soft">
                     {!isApprover && <th className="border-b-2 border-line p-2" />}
