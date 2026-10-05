@@ -1059,6 +1059,25 @@ function Index() {
                 <option value="container">Container</option>
               </select>
             </div>
+            {gerais.tipo === "container" && (
+              <div>
+                <label className={labelCls}>Retorno Vazio</label>
+                <label className="flex h-[38px] items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-navy"
+                    checked={gerais.retornoVazio}
+                    onChange={(e) => setG({ retornoVazio: e.target.checked })}
+                  />
+                  <span className="text-sm text-ink">Sim</span>
+                  {gerais.retornoVazio && (
+                    <span className="text-xs font-bold text-accent-dark">
+                      Retorno vazio
+                    </span>
+                  )}
+                </label>
+              </div>
+            )}
             <div>
               <label className={labelCls}>Valor da Carga (R$/ton)</label>
               <input
