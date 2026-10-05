@@ -846,6 +846,7 @@ function Index() {
   type CampoOrdenacao =
     | "id"
     | "cliente"
+    | "produto"
     | "origem"
     | "destino"
     | "salvoEm"
@@ -875,6 +876,8 @@ function Index() {
         return item.id;
       case "cliente":
         return (item.gerais.cliente || "").toLowerCase();
+      case "produto":
+        return (item.gerais.produto || "").toLowerCase();
       case "origem":
         return (item.gerais.origem || "").toLowerCase();
       case "destino":
@@ -1463,6 +1466,12 @@ function Index() {
                     </th>
                     <th
                       className="cursor-pointer select-none border-b-2 border-line p-2"
+                      onClick={() => alternarOrdenacao("produto")}
+                    >
+                      Produto{indicadorOrdenacao("produto")}
+                    </th>
+                    <th
+                      className="cursor-pointer select-none border-b-2 border-line p-2"
                       onClick={() => alternarOrdenacao("origem")}
                     >
                       Origem{indicadorOrdenacao("origem")}
@@ -1536,6 +1545,9 @@ function Index() {
                         </td>
                         <td className="border-b border-line p-2">
                           {item.gerais.cliente || "—"}
+                        </td>
+                        <td className="border-b border-line p-2">
+                          {item.gerais.produto || "—"}
                         </td>
                         <td className="border-b border-line p-2">
                           {item.gerais.origem || "—"}
