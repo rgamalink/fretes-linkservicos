@@ -1079,7 +1079,9 @@ function Index() {
               </div>
             )}
             <div>
-              <label className={labelCls}>Valor da Carga (R$/ton)</label>
+              <label className={labelCls}>
+                Valor da Carga {gerais.tipo === "container" ? "(R$)" : "(R$/ton)"}
+              </label>
               <input
                 inputMode="decimal"
                 placeholder="0,00"
@@ -1295,9 +1297,9 @@ function Index() {
                 qualquer UF de Origem.
               </li>
               <li>
-                <b>Seguro</b> = (Valor da Carga (R$/ton) × 0,011%) × 2, ou seja, 0,022% do
-                Valor da Carga — sem multiplicar pelo peso do eixo (o R$/ton exibido no card
-                é esse total dividido pelo peso).
+                <b>Seguro</b>: para Container, Valor da Carga é em R$ e o Seguro = Valor da
+                Carga (R$) × 0,022%. Para os demais tipos de carga, Valor da Carga é em
+                R$/ton e o Seguro = (Valor da Carga × peso médio do eixo × 0,011%) × 2.
               </li>
               <li>
                 <b>PIS/COFINS</b> = (Frete Empresa − Frete Motorista − Efrete/Pamcard −

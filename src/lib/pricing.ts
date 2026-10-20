@@ -199,8 +199,10 @@ export function calcular(eixos: number, gerais: DadosGerais, card: DadosCard) {
   const fmR = fmTon * peso;
 
   const icmsR = freR * icmsPct;
-  // Seguro = (Valor da Carga (R$/ton) × peso médio do eixo × 0,011%) × 2.
-  const segR = valorCarga * peso * 0.00011 * 2;
+  // Container: Valor da Carga já é em R$ (não R$/ton) → Seguro = Valor da Carga × 0,022%.
+  // Demais tipos: Valor da Carga é em R$/ton → Seguro = (Valor da Carga × peso médio do eixo × 0,011%) × 2.
+  const segR =
+    gerais.tipo === "container" ? valorCarga * 0.00022 : valorCarga * peso * 0.00011 * 2;
 
   // Efrete/Pamcard = 0,32% do Frete Motorista + 0,50% do Pedágio, igual em
   // qualquer UF de origem.
